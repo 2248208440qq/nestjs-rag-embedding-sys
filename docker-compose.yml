@@ -1,0 +1,67 @@
+name: rag-embedding-knowledge
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: rag-embedding-knowledge-postgres
+    environment:
+      POSTGRES_DB: rag_embedding
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: rag_password
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./apps/backend/docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag -d rag_embedding"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag-embedding-knowledge-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  embedding:
+    build:
+      context: ./apps/backend/docker/embedding
+      dockerfile: Dockerfile
+    container_name: rag-embedding-knowledge-embedding
+    ports:
+      - "8000:8000"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HF_HUB_DISABLE_XET=1
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: infra_postgres_data
+    external: true
+  hf_cache:
+    name: embedding_hf_cache
+    external: true
+  redis_data:

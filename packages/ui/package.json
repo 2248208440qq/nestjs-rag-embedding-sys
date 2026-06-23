@@ -1,0 +1,37 @@
+{
+  "name": "@repo/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./StatusTag": "./src/StatusTag.vue",
+    "./SourceTypeTag": "./src/SourceTypeTag.vue",
+    "./FileUpload": "./src/FileUpload.vue",
+    "./DocumentTable": "./src/DocumentTable.vue",
+    "./DocumentDetail": "./src/DocumentDetail.vue",
+    "./SearchBar": "./src/SearchBar.vue",
+    "./SearchResultList": "./src/SearchResultList.vue"
+  },
+  "scripts": {
+    "build": "vue-tsc --noEmit",
+    "dev": "vue-tsc --noEmit --watch",
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "@repo/shared-type": "workspace:*",
+    "element-plus": "^2.9.8",
+    "vue": "^3.5.32"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "@vitejs/plugin-vue": "^6.0.6",
+    "eslint": "^9.31.0",
+    "typescript": "5.5.4",
+    "vite": "^8.0.8",
+    "vue-tsc": "^3.2.6"
+  }
+}

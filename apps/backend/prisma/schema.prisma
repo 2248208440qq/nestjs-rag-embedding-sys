@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model KnowledgeDocument {
+  id               String                   @id @default(uuid()) @db.Uuid
+  title            String
+  sourceType       KnowledgeDocumentSourceType @default(other)
+  status           KnowledgeDocumentStatus  @default(uploaded)
+  originalFileName String?                  @map("original_file_name")
+  mimeType         String?                  @map("mime_type")
+  size             Int?
+  storagePath      String?                  @map("storage_path")
+  authority        String?
+  jurisdiction     String?
+  publishDate      DateTime?                @map("publish_date")
+  effectiveDate    DateTime?                @map("effective_date")
+  version          String?
+  tags             String[]                 @default([])
+  metadata         Json                     @default("{}")
+  chunks           KnowledgeDocumentChunk[]
+  createdAt        DateTime                 @default(now()) @map("created_at")
+  updatedAt        DateTime                 @updatedAt @map("updated_at")
+
+  @@map("knowledge_documents")
+}
+
+model KnowledgeDocumentChunk {
+  id          String            @id @default(uuid()) @db.Uuid
+  documentId  String            @map("document_id") @db.Uuid
+  document    KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content     String
+  sectionPath String?           @map("section_path")
+  articleNo   String?           @map("article_no")
+  chunkIndex  Int               @map("chunk_index")
+  embedding   Unsupported("vector(1024)")?
+  metadata    Json              @default("{}")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  @@index([documentId])
+  @@index([articleNo])
+  @@map("knowledge_document_chunks")
+}
+
+enum KnowledgeDocumentStatus {
+  uploaded
+  parsed
+  indexed
+  failed
+}
+
+enum KnowledgeDocumentSourceType {
+  law
+  judicial_interpretation
+  case
+  contract
+  internal
+  other
+}
