@@ -1,20 +1,27 @@
-const baseUrl = process.env.API_BASE_URL ?? 'http://localhost:3000';
+const apiOrigin = process.env.API_ORIGIN ?? 'http://localhost:3000';
+const baseUrl = process.env.API_BASE_URL ?? `${apiOrigin}/api`;
+const docsJsonUrl = process.env.DOCS_JSON_URL ?? `${apiOrigin}/docs-json`;
 const timeoutMs = Number(process.env.API_TEST_TIMEOUT_MS ?? 15_000);
+const mode = resolveMode(process.argv);
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
-  console.log(`Usage: pnpm test:api
+  console.log(`Usage: pnpm test:api [--api-only|--docs-only]
 
 Environment:
-  API_BASE_URL          Backend base URL. Default: http://localhost:3000
-  API_TEST_TIMEOUT_MS   Backend readiness timeout. Default: 15000
+  API_ORIGIN             Backend or Vite proxy origin. Default: http://localhost:3000
+  API_BASE_URL           Backend API base URL. Default: $API_ORIGIN/api
+  DOCS_JSON_URL          Swagger JSON URL. Default: $API_ORIGIN/docs-json
+  API_TEST_TIMEOUT_MS    Backend readiness timeout. Default: 15000
 
 Examples:
   pnpm test:api
-  API_BASE_URL=http://localhost:3000 pnpm test:api`);
+  pnpm test:api --api-only
+  pnpm test:docs
+  API_ORIGIN=http://localhost:5777 pnpm test:api`);
   process.exit(0);
 }
 
-const tests = [
+const apiTests = [
   {
     name: 'GET / returns wrapped success response',
     method: 'GET',
@@ -24,45 +31,82 @@ const tests = [
       expectEqual(body.code, 0, 'code');
       expectEqual(body.message, 'success', 'message');
       expectEqual(body.data, 'Hello World!', 'data');
-      expectEqual(body.path, '/', 'path');
+      expectEqual(body.path, '/api/', 'path');
       expectType(body.timestamp, 'string', 'timestamp');
       expectType(body.requestId, 'string', 'requestId');
     },
   },
   {
-    name: 'GET /docs-json exposes Swagger document',
+    name: 'GET /health returns health payload',
     method: 'GET',
-    path: '/docs-json',
-    expectStatus: 200,
-    raw: true,
-    assert: (body) => {
-      expectEqual(body.info?.title, 'nest-ai-template', 'info.title');
-      expectTruthy(body.paths?.['/users'], 'paths./users');
-    },
-  },
-  {
-    name: 'GET /users returns wrapped user list',
-    method: 'GET',
-    path: '/users',
+    path: '/health',
     expectStatus: 200,
     assert: (body) => {
       expectEqual(body.code, 0, 'code');
-      expectTruthy(Array.isArray(body.data), 'data must be an array');
+      expectTruthy(body.data, 'data');
+      expectEqual(body.path, '/api/health', 'path');
     },
   },
   {
-    name: 'GET /users/not-found returns wrapped error response',
-    method: 'GET',
-    path: '/users/not-found',
-    expectStatus: 404,
+    name: 'POST /auth/login rejects invalid credentials without whitelist errors',
+    method: 'POST',
+    path: '/auth/login',
+    body: {
+      captcha: true,
+      password: 'wrong-password',
+      username: 'admin',
+    },
+    expectStatus: 401,
     raw: true,
     assert: (body) => {
-      expectEqual(body.code, 404, 'code');
-      expectEqual(body.errorCode, 'NOT_FOUND', 'errorCode');
-      expectEqual(body.path, '/users/not-found', 'path');
-      expectEqual(body.method, 'GET', 'method');
-      expectType(body.timestamp, 'string', 'timestamp');
-      expectType(body.requestId, 'string', 'requestId');
+      expectEqual(body.code, 401, 'code');
+      expectEqual(body.errorCode, 'UNAUTHORIZED', 'errorCode');
+      expectEqual(body.message, 'Username or password is incorrect', 'message');
+      expectEqual(body.path, '/api/auth/login', 'path');
+      expectEqual(body.method, 'POST', 'method');
+    },
+  },
+  {
+    name: 'POST /auth/logout rejects missing token once',
+    method: 'POST',
+    path: '/auth/logout',
+    expectStatus: 401,
+    raw: true,
+    assert: (body) => {
+      expectEqual(body.code, 401, 'code');
+      expectEqual(body.errorCode, 'UNAUTHORIZED', 'errorCode');
+      expectEqual(body.message, 'No token provided', 'message');
+      expectEqual(body.path, '/api/auth/logout', 'path');
+      expectEqual(body.method, 'POST', 'method');
+    },
+  },
+  {
+    name: 'GET /auth/codes rejects missing token',
+    method: 'GET',
+    path: '/auth/codes',
+    expectStatus: 401,
+    raw: true,
+    assert: (body) => {
+      expectEqual(body.code, 401, 'code');
+      expectEqual(body.errorCode, 'UNAUTHORIZED', 'errorCode');
+      expectEqual(body.message, 'No token provided', 'message');
+      expectEqual(body.path, '/api/auth/codes', 'path');
+    },
+  },
+];
+
+const docsTests = [
+  {
+    name: 'GET Swagger JSON exposes current system docs',
+    method: 'GET',
+    url: docsJsonUrl,
+    expectStatus: 200,
+    raw: true,
+    assert: (body) => {
+      expectEqual(body.info?.title, 'rag-embedding', 'info.title');
+      expectTruthy(body.paths?.['/api/auth/login'], 'paths./api/auth/login');
+      expectTruthy(body.paths?.['/api/search'], 'paths./api/search');
+      expectTruthy(body.components?.schemas, 'components.schemas');
     },
   },
 ];
@@ -70,6 +114,10 @@ const tests = [
 async function main() {
   await waitForBackend();
 
+  const tests = [
+    ...(mode === 'docs' ? [] : apiTests),
+    ...(mode === 'api' ? [] : docsTests),
+  ];
   const results = [];
 
   for (const test of tests) {
@@ -101,7 +149,7 @@ async function waitForBackend() {
 
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(new URL('/', baseUrl));
+      const response = await fetch(apiUrl('/'));
 
       if (response.ok) {
         return;
@@ -121,14 +169,16 @@ async function waitForBackend() {
 }
 
 async function runTest(test) {
-  const response = await fetch(new URL(test.path, baseUrl), {
+  const response = await fetch(test.url ?? apiUrl(test.path), {
     method: test.method,
     headers: {
       accept: 'application/json',
+      ...(test.body ? { 'content-type': 'application/json' } : {}),
       'x-request-id': `vite-test-${Date.now()}`,
     },
+    body: test.body ? JSON.stringify(test.body) : undefined,
   });
-  const body = await response.json();
+  const body = await readJson(response);
 
   expectEqual(response.status, test.expectStatus, 'HTTP status');
   test.assert(body);
@@ -136,6 +186,7 @@ async function runTest(test) {
 
 function printResults(results) {
   console.log(`\nAPI test target: ${baseUrl}`);
+  console.log(`Docs target: ${docsJsonUrl}`);
 
   for (const result of results) {
     const status = result.ok ? 'PASS' : 'FAIL';
@@ -148,6 +199,26 @@ function printResults(results) {
 
   const passed = results.filter((result) => result.ok).length;
   console.log(`\n${passed}/${results.length} tests passed`);
+}
+
+async function readJson(response) {
+  const text = await response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Expected JSON response, got: ${text.slice(0, 200)}`);
+  }
+}
+
+function resolveMode(argv) {
+  if (argv.includes('--docs-only')) return 'docs';
+  if (argv.includes('--api-only')) return 'api';
+  return 'all';
+}
+
+function apiUrl(path) {
+  return `${baseUrl.replace(/\/$/, '')}/${String(path).replace(/^\//, '')}`;
 }
 
 function expectEqual(actual, expected, label) {

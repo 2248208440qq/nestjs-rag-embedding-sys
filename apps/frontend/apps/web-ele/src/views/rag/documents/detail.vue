@@ -25,11 +25,14 @@ import {
   indexDocument,
 } from '#/api/rag';
 
+import FilePreviewDialog from './components/FilePreviewDialog.vue';
+
 const route = useRoute();
 const router = useRouter();
 const document = ref<KnowledgeDocument>();
 const loading = ref(false);
 const actionLoading = ref(false);
+const previewVisible = ref(false);
 
 const canIndex = computed(
   () => document.value?.status === 'parsed' || document.value?.status === 'indexed',
@@ -186,6 +189,13 @@ onMounted(loadDocument);
 
         <ElSpace class="mt-5">
           <ElButton
+            :disabled="!document.originalFileName || actionLoading"
+            type="primary"
+            @click="previewVisible = true"
+          >
+            预览文件
+          </ElButton>
+          <ElButton
             :disabled="document.status !== 'uploaded' || actionLoading"
             :loading="actionLoading"
             type="warning"
@@ -211,6 +221,8 @@ onMounted(loadDocument);
             删除文档
           </ElButton>
         </ElSpace>
+
+        <FilePreviewDialog v-model="previewVisible" :document="document" />
       </template>
     </ElCard>
   </Page>

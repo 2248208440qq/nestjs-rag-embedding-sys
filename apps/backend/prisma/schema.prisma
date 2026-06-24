@@ -62,3 +62,130 @@ enum KnowledgeDocumentSourceType {
   internal
   other
 }
+
+// ==================== RBAC Models ====================
+
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  username      String         @unique
+  password      String
+  realName      String?        @map("real_name")
+  homePath      String?        @map("home_path")
+  avatar        String?
+  status        UserStatus     @default(active)
+  deptId        String?        @map("dept_id") @db.Uuid
+  dept          Dept?          @relation(fields: [deptId], references: [id])
+  roles         UserRole[]
+  refreshTokens RefreshToken[]
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Role {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String     @unique
+  description String?
+  status      RoleStatus @default(active)
+  menus       RoleMenu[]
+  users       UserRole[]
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
+
+model UserRole {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  roleId String @map("role_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model Menu {
+  id        String     @id @default(uuid()) @db.Uuid
+  parentId  String?    @map("parent_id") @db.Uuid
+  parent    Menu?      @relation("MenuTree", fields: [parentId], references: [id])
+  children  Menu[]     @relation("MenuTree")
+  name      String     @unique
+  path      String
+  component String?
+  icon      String?
+  type      MenuType
+  status    MenuStatus @default(active)
+  orderNo   Int        @default(0) @map("order_no")
+  meta      Json       @default("{}")
+  roles     RoleMenu[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("menus")
+}
+
+model RoleMenu {
+  id     String @id @default(uuid()) @db.Uuid
+  roleId String @map("role_id") @db.Uuid
+  menuId String @map("menu_id") @db.Uuid
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  menu   Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, menuId])
+  @@map("role_menus")
+}
+
+model Dept {
+  id        String     @id @default(uuid()) @db.Uuid
+  parentId  String?    @map("parent_id") @db.Uuid
+  parent    Dept?      @relation("DeptTree", fields: [parentId], references: [id])
+  children  Dept[]     @relation("DeptTree")
+  name      String
+  status    DeptStatus @default(active)
+  remark    String?
+  users     User[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("depts")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+}
+
+enum UserStatus {
+  active
+  inactive
+}
+
+enum RoleStatus {
+  active
+  inactive
+}
+
+enum MenuStatus {
+  active
+  inactive
+}
+
+enum MenuType {
+  catalog
+  menu
+  button
+}
+
+enum DeptStatus {
+  active
+  inactive
+}

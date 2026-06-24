@@ -1,41 +1,21 @@
-interface ApiSuccessResponse<T> {
-  data: T;
-  status: 'success';
+import { requestClient } from '#/api/request';
+
+export function ragGet<T>(path: string) {
+  return requestClient.get<T>(path);
 }
 
-interface ApiErrorResponse {
-  error?: {
-    message?: string;
-  };
-  status: 'error';
+export function ragPost<T>(path: string, data?: unknown) {
+  return requestClient.post<T>(path, data);
 }
 
-type ApiResponse<T> = ApiErrorResponse | ApiSuccessResponse<T>;
-
-const RAG_API_BASE = '/rag-api';
-
-export async function ragRequest<T>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
-  const headers = new Headers(init.headers);
-  const isFormData = init.body instanceof FormData;
-
-  if (!isFormData && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  const response = await fetch(`${RAG_API_BASE}${path}`, {
-    ...init,
-    headers,
+export function ragPostForm<T>(path: string, data: FormData) {
+  return requestClient.post<T>(path, data, {
+    headers: {
+      'Content-Type': 'multipart/form-data;charset=utf-8',
+    },
   });
-  const payload = (await response.json().catch(() => ({}))) as ApiResponse<T>;
+}
 
-  if (!response.ok || payload.status === 'error') {
-    const message =
-      'error' in payload ? payload.error?.message : response.statusText;
-    throw new Error(message || '请求失败');
-  }
-
-  return payload.data;
+export function ragDelete<T>(path: string) {
+  return requestClient.delete<T>(path);
 }

@@ -31,5 +31,8 @@ export function setupApp(app: INestApplication) {
   );
   app.useGlobalFilters(new ResponseExceptionFilter(logger, config));
   app.useGlobalInterceptors(new ResponseInterceptor());
-  app.enableCors();
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
 }

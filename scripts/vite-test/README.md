@@ -1,45 +1,76 @@
 # vite-test
 
-Lightweight backend API smoke tests for the local NestJS service.
+Lightweight API and Swagger smoke tests for the local RAG backend.
 
-Docker is used only for required infrastructure: Redis and PostgreSQL with pgvector.
+The tests are intentionally small and deterministic. They validate public API
+contracts, the unified response wrapper, auth error behavior, and Swagger docs.
 
 ## Run
 
-Start infrastructure and the local backend first:
+Start the backend first:
 
 ```bash
 pnpm dev:backend
 ```
 
-Then run:
+Then run all smoke tests:
 
 ```bash
 pnpm test:api
 ```
 
-For a one-command local smoke check, use:
+Run only API contract tests:
+
+```bash
+pnpm test:api -- --api-only
+```
+
+Run only Swagger document tests:
+
+```bash
+pnpm test:docs
+```
+
+For a one-command local check that starts Docker infrastructure and the backend
+when needed:
+
+```bash
+pnpm test:api:local
+```
+
+`docker:test` is kept as an alias:
 
 ```bash
 pnpm docker:test
 ```
 
-This command starts Docker infrastructure, applies the Prisma schema, starts the
-local backend if needed, runs the API cases, and stops only the backend process
-it started.
+## Environment
 
-The default target is `http://localhost:3000`. Override it with:
+Defaults target the real local backend:
 
 ```bash
-API_BASE_URL=http://localhost:3000 pnpm test:api
+API_ORIGIN=http://localhost:3000
+API_BASE_URL=http://localhost:3000/api
+DOCS_JSON_URL=http://localhost:3000/docs-json
+```
+
+Override them when you want to test through the Vite dev proxy:
+
+```bash
+API_ORIGIN=http://localhost:5777 pnpm test:api
 ```
 
 ## Cases
 
-- `GET /` verifies the unified success response wrapper.
-- `GET /docs-json` verifies Swagger is exposed.
-- `GET /users` verifies the user API returns a wrapped list.
-- `GET /users/not-found` verifies the unified error response wrapper.
+- `GET /api/` verifies the unified success response wrapper.
+- `GET /api/health` verifies health output is wrapped.
+- `GET /docs-json` verifies Swagger exposes the current RAG/auth routes.
+- `POST /api/auth/login` with Vben extra fields and invalid credentials verifies
+  the backend returns a real `401`, not DTO whitelist errors.
+- `POST /api/auth/logout` without a token verifies the backend returns one
+  explicit `401` contract response.
+- `GET /api/auth/codes` without a token verifies protected APIs reject missing
+  credentials consistently.
 
 ## Writing Tests
 
@@ -47,14 +78,16 @@ Add cases to `scripts/vite-test/run.mjs` using this shape:
 
 ```js
 {
-  name: 'GET /example',
-  method: 'GET',
+  name: 'POST /example',
+  method: 'POST',
   path: '/example',
+  body: { value: 'demo' },
   expectStatus: 200,
   assert: (body) => {
-    expectEqual(body.code, 0, 'code')
+    expectEqual(body.code, 0, 'code');
   },
 }
 ```
 
-Keep tests independent and deterministic. Tests should validate API contracts, not implementation details.
+Keep tests independent. They should validate public contracts, not internal
+implementation details.

@@ -7,14 +7,19 @@ import type {
   KnowledgeDocument,
 } from './types';
 
-import { ragRequest } from './http';
+import { ragDelete, ragGet, ragPost, ragPostForm } from './http';
+import { requestClient } from '#/api/request';
 
 export function fetchDocuments() {
-  return ragRequest<KnowledgeDocument[]>('/documents');
+  return ragGet<KnowledgeDocument[]>('/documents');
 }
 
 export function fetchDocument(id: string) {
-  return ragRequest<KnowledgeDocument>(`/documents/${id}`);
+  return ragGet<KnowledgeDocument>(`/documents/${id}`);
+}
+
+export function downloadDocumentFile(id: string) {
+  return requestClient.download<Blob>(`/documents/${id}/file`);
 }
 
 export function uploadDocument(
@@ -36,26 +41,17 @@ export function uploadDocument(
     });
   }
 
-  return ragRequest<DocumentUploadResponse>('/documents/upload', {
-    body: formData,
-    method: 'POST',
-  });
+  return ragPostForm<DocumentUploadResponse>('/documents/upload', formData);
 }
 
 export function extractDocument(id: string) {
-  return ragRequest<DocumentExtractionResponse>(`/documents/${id}/extract`, {
-    method: 'POST',
-  });
+  return ragPost<DocumentExtractionResponse>(`/documents/${id}/extract`);
 }
 
 export function indexDocument(id: string) {
-  return ragRequest<DocumentIndexResponse>(`/documents/${id}/index`, {
-    method: 'POST',
-  });
+  return ragPost<DocumentIndexResponse>(`/documents/${id}/index`);
 }
 
 export function deleteDocument(id: string) {
-  return ragRequest<DocumentDeleteResponse>(`/documents/${id}`, {
-    method: 'DELETE',
-  });
+  return ragDelete<DocumentDeleteResponse>(`/documents/${id}`);
 }

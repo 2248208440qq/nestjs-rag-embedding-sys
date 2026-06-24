@@ -29,27 +29,15 @@ export class ResponseExceptionFilter implements ExceptionFilter {
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null;
     const message = this.resolveMessage(exception, exceptionResponse);
-    const timestamp = new Date().toISOString();
-    const requestId = requestContext.getStore()?.requestId;
-    const errorCode = this.resolveErrorCode(status);
     const errorResponse: ApiErrorResponse = {
-      status: 'error',
       code: status,
-      timestamp,
+      timestamp: new Date().toISOString(),
       message,
-      errorCode,
-      error: {
-        code: errorCode,
-        message: Array.isArray(message) ? message.join('; ') : message,
-      },
-      meta: {
-        requestId: requestId ?? '',
-        timestamp,
-        path: request.originalUrl,
-      },
+      errorCode: this.resolveErrorCode(status),
       path: request.originalUrl,
       method: request.method,
-      requestId,
+      requestId: requestContext.getStore()?.requestId,
+      error: exception instanceof Error ? exception.name : undefined,
       stack:
         this.config.isProduction
           ? undefined

@@ -63,4 +63,28 @@ export class AppConfigService {
   get redisDb() {
     return this.configService.getOrThrow<number>('REDIS_DB');
   }
+
+  get jwtSecret() {
+    return this.configService.getOrThrow<string>('JWT_SECRET');
+  }
+
+  get jwtRefreshSecret() {
+    return this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
+  }
+
+  get jwtAccessExpiresIn() {
+    return this.configService.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN');
+  }
+
+  get jwtRefreshExpiresIn() {
+    return this.configService.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN');
+  }
+
+  get jwtIssuer() {
+    return this.configService.getOrThrow<string>('JWT_ISSUER');
+  }
+
+  get jwtAudience() {
+    return this.configService.getOrThrow<string>('JWT_AUDIENCE');
+  }
 }

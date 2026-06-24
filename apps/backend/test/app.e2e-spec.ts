@@ -9,10 +9,10 @@ import type {
   ApiSuccessResponse,
   DocumentExtractionResponse,
   DocumentUploadResponse,
-} from '@repo/shared-type';
+} from '@repo/shared-types';
 import JSZip from 'jszip';
 import request from 'supertest';
-import { configureApp } from '../src/app.setup';
+import { setupApp } from '../src/app.setup';
 import { AppModule } from './../src/app.module';
 
 describe('AppController (e2e)', () => {
@@ -25,7 +25,7 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    configureApp(app);
+    setupApp(app);
     await app.init();
   });
 
@@ -44,7 +44,7 @@ describe('AppController (e2e)', () => {
       .get('/api/health')
       .expect(200)
       .expect(({ body }) => {
-        expect(body.status).toBe('success');
+        expect(body.code).toBe(0);
         expect(body.data).toEqual({
           service: 'rag-embedding-backend',
           status: 'ok',
@@ -66,7 +66,7 @@ describe('AppController (e2e)', () => {
 
     const uploadBody =
       uploadResponse.body as ApiSuccessResponse<DocumentUploadResponse>;
-    expect(uploadBody.status).toBe('success');
+    expect(uploadBody.code).toBe(0);
     expect(uploadBody.data.document.originalFileName).toBe('sample.docx');
 
     const extractResponse = await request(server)
@@ -75,7 +75,7 @@ describe('AppController (e2e)', () => {
 
     const extractBody =
       extractResponse.body as ApiSuccessResponse<DocumentExtractionResponse>;
-    expect(extractBody.status).toBe('success');
+    expect(extractBody.code).toBe(0);
     expect(extractBody.data.extractedTextLength).toBeGreaterThan(0);
   });
 });

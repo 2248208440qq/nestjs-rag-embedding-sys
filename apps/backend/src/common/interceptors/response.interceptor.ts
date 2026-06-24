@@ -22,16 +22,10 @@ export class ResponseInterceptor<T>
 
     return next.handle().pipe(
       map((data) => ({
-        status: 'success' as const,
         code: 0,
         timestamp: new Date().toISOString(),
         message: 'success',
         data,
-        meta: {
-          requestId: store?.requestId ?? '',
-          timestamp: new Date().toISOString(),
-          path: request.originalUrl,
-        },
         path: request.originalUrl,
         requestId: store?.requestId,
       })),

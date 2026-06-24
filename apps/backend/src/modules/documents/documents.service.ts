@@ -1,4 +1,4 @@
-import { rm } from 'node:fs/promises';
+import { rm, stat } from 'node:fs/promises';
 
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -76,6 +76,27 @@ export class DocumentsService {
     }
 
     return toKnowledgeDocument(document);
+  }
+
+  async getFile(id: string) {
+    const document = await this.getDocumentOrThrow(id);
+
+    if (!document.storagePath) {
+      throw new BadRequestException('Document has no uploaded file');
+    }
+
+    try {
+      const fileStat = await stat(document.storagePath);
+
+      return {
+        mimeType: document.mimeType ?? 'application/octet-stream',
+        originalFileName: document.originalFileName ?? `${document.title}.file`,
+        size: fileStat.size,
+        storagePath: document.storagePath,
+      };
+    } catch {
+      throw new NotFoundException(`Document file ${id} not found`);
+    }
   }
 
   async extract(id: string): Promise<DocumentExtractionResponse> {

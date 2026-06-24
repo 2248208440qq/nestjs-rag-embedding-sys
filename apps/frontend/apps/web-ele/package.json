@@ -26,6 +26,8 @@
     "#/*": "./src/*"
   },
   "dependencies": {
+    "@open-file-viewer/core": "0.1.13",
+    "@open-file-viewer/vue": "0.1.13",
     "@vben/access": "workspace:*",
     "@vben/common-ui": "workspace:*",
     "@vben/constants": "workspace:*",
@@ -43,6 +45,7 @@
     "@vueuse/core": "catalog:",
     "dayjs": "catalog:",
     "element-plus": "catalog:",
+    "pdfjs-dist": "^6.0.227",
     "pinia": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"

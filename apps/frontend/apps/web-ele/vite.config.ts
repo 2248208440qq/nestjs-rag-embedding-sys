@@ -15,15 +15,9 @@ export default defineConfig(async () => {
         proxy: {
           '/api': {
             changeOrigin: true,
-            rewrite: (path) => path.replace(/^\/api/, ''),
-            // mock代理目标地址
-            target: 'http://localhost:5320/api',
-            ws: true,
-          },
-          '/rag-api': {
-            changeOrigin: true,
-            rewrite: (path) => path.replace(/^\/rag-api/, '/api'),
+            // 代理到真实后端服务（NestJS，端口 3000，全局前缀 /api）
             target: 'http://localhost:3000',
+            ws: true,
           },
         },
       },

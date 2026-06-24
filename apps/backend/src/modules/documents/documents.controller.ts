@@ -7,10 +7,13 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { createReadStream } from 'node:fs';
+import type { Response } from 'express';
 
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { DocumentsService } from './documents.service';
@@ -40,6 +43,23 @@ export class DocumentsController {
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.documentsService.findOne(id);
+  }
+
+  @Get(':id/file')
+  async getFile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() response: Response,
+  ) {
+    const file = await this.documentsService.getFile(id);
+
+    response.setHeader('Content-Type', file.mimeType);
+    response.setHeader('Content-Length', String(file.size));
+    response.setHeader(
+      'Content-Disposition',
+      `inline; filename*=UTF-8''${encodeURIComponent(file.originalFileName)}`,
+    );
+
+    createReadStream(file.storagePath).pipe(response);
   }
 
   @Post(':id/extract')

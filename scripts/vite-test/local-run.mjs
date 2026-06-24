@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 const rootDir = fileURLToPath(new URL('../..', import.meta.url));
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const node = process.execPath;
-const baseUrl = process.env.API_BASE_URL ?? 'http://localhost:3000';
+const apiOrigin = process.env.API_ORIGIN ?? 'http://localhost:3000';
+const baseUrl = process.env.API_BASE_URL ?? `${apiOrigin}/api`;
 const timeoutMs = Number(process.env.API_TEST_TIMEOUT_MS ?? 30_000);
 
 let backendProcess;
@@ -22,6 +23,7 @@ try {
     env: {
       ...process.env,
       API_BASE_URL: baseUrl,
+      API_ORIGIN: apiOrigin,
       API_TEST_TIMEOUT_MS: String(timeoutMs),
     },
   });
@@ -80,7 +82,7 @@ async function waitForBackend() {
 
 async function isBackendReady() {
   try {
-    const response = await fetch(new URL('/', baseUrl));
+    const response = await fetch(apiUrl('/'));
     return response.ok;
   } catch {
     return false;
@@ -145,4 +147,8 @@ function prefixLines(label, chunk) {
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function apiUrl(path) {
+  return `${baseUrl.replace(/\/$/, '')}/${String(path).replace(/^\//, '')}`;
 }

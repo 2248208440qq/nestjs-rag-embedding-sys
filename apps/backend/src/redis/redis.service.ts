@@ -64,13 +64,50 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.client;
   }
 
+  /**
+   * Whether the Redis client is connected and ready to accept commands.
+   * Returns false in test mode or before initialisation.
+   */
+  get isConnected(): boolean {
+    return this.client !== null;
+  }
+
   async exists(key: string): Promise<boolean> {
-    const result = await this.getClient().exists(key);
+    if (!this.client) return false;
+    const result = await this.client.exists(key);
     return result === 1;
   }
 
   async get(key: string): Promise<string | null> {
-    return this.getClient().get(key);
+    if (!this.client) return null;
+    return this.client.get(key);
+  }
+
+  async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+    if (!this.client) return;
+    if (ttlSeconds !== undefined) {
+      await this.client.set(key, value, 'EX', ttlSeconds);
+    } else {
+      await this.client.set(key, value);
+    }
+  }
+
+  /**
+   * Set a key with an absolute TTL (in seconds). No-op when Redis is unavailable.
+   */
+  async setex(key: string, ttlSeconds: number, value: string): Promise<void> {
+    if (!this.client) return;
+    await this.client.setex(key, ttlSeconds, value);
+  }
+
+  async del(key: string): Promise<number> {
+    if (!this.client) return 0;
+    return this.client.del(key);
+  }
+
+  async delMany(keys: string[]): Promise<number> {
+    if (!this.client || keys.length === 0) return 0;
+    return this.client.del(...keys);
   }
 
   async ping(): Promise<string> {
@@ -78,15 +115,35 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async incr(key: string): Promise<number> {
-    return this.getClient().incr(key);
+    if (!this.client) return 0;
+    return this.client.incr(key);
   }
 
   async decr(key: string): Promise<number> {
-    return this.getClient().decr(key);
+    if (!this.client) return 0;
+    return this.client.decr(key);
   }
 
   async expire(key: string, ttlSeconds: number): Promise<void> {
-    await this.getClient().expire(key, ttlSeconds);
+    if (!this.client) return;
+    await this.client.expire(key, ttlSeconds);
+  }
+
+  // ---- Set operations (used for tracking user refresh tokens) ----
+
+  async sadd(key: string, ...members: string[]): Promise<number> {
+    if (!this.client) return 0;
+    return this.client.sadd(key, ...members);
+  }
+
+  async srem(key: string, ...members: string[]): Promise<number> {
+    if (!this.client) return 0;
+    return this.client.srem(key, ...members);
+  }
+
+  async smembers(key: string): Promise<string[]> {
+    if (!this.client) return [];
+    return this.client.smembers(key);
   }
 
   private async waitUntilReady() {
