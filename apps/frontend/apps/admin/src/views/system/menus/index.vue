@@ -6,10 +6,12 @@ import { computed, reactive, ref } from 'vue';
 
 import { Page, VbenButton, VbenSelect } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
+import { useAccess } from '@vben/access';
 
 import { useVbenDrawer } from '@vben/common-ui';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { deleteMenuApi, getMenuListApi } from '#/api';
+import { SYSTEM_PERMISSIONS } from '#/constants/permissions';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 import { getMenuTypeOptions, getStatusOptions, useColumns } from './data';
@@ -24,6 +26,17 @@ type QueryParams = {
 
 const fullTreeData = ref<MenuRecord[]>([]);
 const tableLoading = ref(false);
+const { hasAccessByCodes } = useAccess();
+
+const canCreate = computed(() =>
+  hasAccessByCodes([SYSTEM_PERMISSIONS.menu.create]),
+);
+const canUpdate = computed(() =>
+  hasAccessByCodes([SYSTEM_PERMISSIONS.menu.update]),
+);
+const canDelete = computed(() =>
+  hasAccessByCodes([SYSTEM_PERMISSIONS.menu.delete]),
+);
 
 const searchForm = reactive<{
   keyword: string;
@@ -254,7 +267,7 @@ async function onDelete(row: MenuRecord) {
       <Grid table-title="菜单列表">
         <template #toolbar-tools>
           <div class="flex items-center gap-2">
-            <VbenButton @click="onCreate">
+            <VbenButton v-if="canCreate" @click="onCreate">
               <Plus class="size-5" />
               新建菜单
             </VbenButton>
@@ -265,13 +278,14 @@ async function onDelete(row: MenuRecord) {
         </template>
         <template #operation="{ row }">
           <div class="flex w-full justify-center gap-2">
-            <VbenButton size="sm" variant="link" @click="onAppend(row)">
+            <VbenButton v-if="canCreate" size="sm" variant="link" @click="onAppend(row)">
               新增子级
             </VbenButton>
-            <VbenButton size="sm" variant="link" @click="onEdit(row)">
+            <VbenButton v-if="canUpdate" size="sm" variant="link" @click="onEdit(row)">
               修改
             </VbenButton>
             <VbenButton
+              v-if="canDelete"
               size="sm"
               variant="link"
               class="text-destructive hover:text-destructive"

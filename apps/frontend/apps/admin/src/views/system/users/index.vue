@@ -2,14 +2,16 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { UserRecord } from '#/api';
 
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 import { Page, VbenButton, VbenSelect } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
+import { useAccess } from '@vben/access';
 
 import { useVbenDrawer } from '@vben/common-ui';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { deleteUserApi, getUserListApi } from '#/api';
+import { SYSTEM_PERMISSIONS } from '#/constants/permissions';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 import { cleanPayload } from '../shared';
@@ -24,6 +26,17 @@ type QueryParams = {
 };
 
 const tableLoading = ref(false);
+const { hasAccessByCodes } = useAccess();
+
+const canCreate = computed(() =>
+  hasAccessByCodes([SYSTEM_PERMISSIONS.user.create]),
+);
+const canUpdate = computed(() =>
+  hasAccessByCodes([SYSTEM_PERMISSIONS.user.update]),
+);
+const canDelete = computed(() =>
+  hasAccessByCodes([SYSTEM_PERMISSIONS.user.delete]),
+);
 
 const searchForm = reactive({
   name: '',
@@ -163,7 +176,7 @@ async function onDelete(row: UserRecord) {
       <Grid table-title="用户列表">
         <template #toolbar-tools>
           <div class="flex items-center gap-2">
-            <VbenButton @click="onCreate">
+            <VbenButton v-if="canCreate" @click="onCreate">
               <Plus class="size-5" />
               新建用户
             </VbenButton>
@@ -185,10 +198,11 @@ async function onDelete(row: UserRecord) {
         </template>
         <template #operation="{ row }">
           <div class="flex w-full justify-center gap-2">
-            <VbenButton size="sm" variant="link" @click="onEdit(row)">
+            <VbenButton v-if="canUpdate" size="sm" variant="link" @click="onEdit(row)">
               修改
             </VbenButton>
             <VbenButton
+              v-if="canDelete"
               size="sm"
               variant="link"
               class="text-destructive hover:text-destructive"

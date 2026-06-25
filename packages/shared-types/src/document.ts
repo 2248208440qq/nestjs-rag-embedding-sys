@@ -1,4 +1,10 @@
-export type KnowledgeDocumentStatus = 'uploaded' | 'parsed' | 'indexed' | 'failed';
+export type KnowledgeDocumentStatus =
+  | 'failed'
+  | 'indexed'
+  | 'indexing'
+  | 'parsed'
+  | 'parsing'
+  | 'uploaded';
 
 export type KnowledgeDocumentSourceType =
   | 'law'
@@ -22,6 +28,7 @@ export interface KnowledgeDocument {
   effectiveDate?: string;
   version?: string;
   tags: string[];
+  knowledgeBaseIds?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -55,17 +62,20 @@ export interface DocumentUploadResponse {
 export interface DocumentExtractionResponse {
   documentId: string;
   extractedTextLength: number;
+  jobId?: string;
 }
 
 export interface DocumentIndexResponse {
   documentId: string;
   chunkCount: number;
   embeddedCount: number;
+  jobId?: string;
 }
 
 export interface DocumentDeleteResponse {
   documentId: string;
   deletedChunks: number;
   deletedFile: boolean;
+  jobId?: string;
   storagePath?: string;
 }

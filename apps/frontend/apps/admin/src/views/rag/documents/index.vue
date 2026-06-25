@@ -8,6 +8,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { Page, VbenButton } from '@vben/common-ui';
+import { useAccess } from '@vben/access';
 
 import {
   ElCard,
@@ -35,8 +36,10 @@ import {
   indexDocument,
   uploadDocument,
 } from '#/api/rag';
+import { RAG_PERMISSIONS } from '#/constants/permissions';
 
 const router = useRouter();
+const { hasAccessByCodes } = useAccess();
 const documents = ref<KnowledgeDocument[]>([]);
 const loading = ref(false);
 const uploadDialogVisible = ref(false);
@@ -56,6 +59,18 @@ const indexedCount = computed(
 );
 const parsedCount = computed(
   () => documents.value.filter((item) => item.status === 'parsed').length,
+);
+const canUploadDocument = computed(() =>
+  hasAccessByCodes([RAG_PERMISSIONS.document.upload]),
+);
+const canParseDocument = computed(() =>
+  hasAccessByCodes([RAG_PERMISSIONS.document.parse]),
+);
+const canIndexDocument = computed(() =>
+  hasAccessByCodes([RAG_PERMISSIONS.document.index]),
+);
+const canDeleteDocument = computed(() =>
+  hasAccessByCodes([RAG_PERMISSIONS.document.delete]),
 );
 
 const sourceTypeLabels: Record<KnowledgeDocumentSourceType, string> = {
@@ -217,7 +232,7 @@ onMounted(loadDocuments);
           <span>知识文档</span>
           <ElSpace>
             <VbenButton :loading="loading" @click="loadDocuments">刷新</VbenButton>
-            <VbenButton @click="uploadDialogVisible = true">
+            <VbenButton v-if="canUploadDocument" @click="uploadDialogVisible = true">
               上传文档
             </VbenButton>
           </ElSpace>
@@ -255,6 +270,7 @@ onMounted(loadDocuments);
                 查看
               </VbenButton>
               <VbenButton
+                v-if="canParseDocument"
                 :disabled="asDocument(row).status !== 'uploaded' || Boolean(actionLoadingId)"
                 :loading="isActionLoading(asDocument(row), 'extract')" size="sm" variant="secondary"
                 @click="handleExtract(asDocument(row))"
@@ -262,6 +278,7 @@ onMounted(loadDocuments);
                 解析
               </VbenButton>
               <VbenButton
+                v-if="canIndexDocument"
                 :disabled="!canIndex(asDocument(row)) || Boolean(actionLoadingId)"
                 :loading="isActionLoading(asDocument(row), 'index')" size="sm" variant="secondary"
                 @click="handleIndex(asDocument(row))"
@@ -269,6 +286,7 @@ onMounted(loadDocuments);
                 {{ asDocument(row).status === 'indexed' ? '更新索引' : '索引' }}
               </VbenButton>
               <VbenButton
+                v-if="canDeleteDocument"
                 :disabled="Boolean(actionLoadingId)"
                 :loading="isActionLoading(asDocument(row), 'delete')" size="sm" variant="destructive"
                 @click="handleDelete(asDocument(row))"
@@ -325,7 +343,7 @@ onMounted(loadDocuments);
       </ElForm>
       <template #footer>
         <VbenButton @click="uploadDialogVisible = false">取消</VbenButton>
-        <VbenButton :loading="uploading" @click="handleUpload">
+        <VbenButton :disabled="!canUploadDocument" :loading="uploading" @click="handleUpload">
           确认上传
         </VbenButton>
       </template>

@@ -9,5 +9,6 @@ import { SearchService } from './search.service';
   imports: [PrismaModule, EmbeddingsModule],
   controllers: [SearchController],
   providers: [SearchService],
+  exports: [SearchService],
 })
 export class SearchModule {}

@@ -1,6 +1,7 @@
 export interface SearchRequest {
   query: string;
   topK?: number;
+  knowledgeBaseIds?: string[];
   sourceTypes?: string[];
   documentIds?: string[];
 }

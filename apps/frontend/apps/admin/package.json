@@ -26,7 +26,7 @@
     "#/*": "./src/*"
   },
   "dependencies": {
-    "@repo/shared-types": "file:../../../../packages/shared-types",
+    "@repo/shared-types": "link:../../../../packages/shared-types",
     "@open-file-viewer/core": "0.1.13",
     "@open-file-viewer/vue": "0.1.13",
     "@vben/access": "workspace:*",

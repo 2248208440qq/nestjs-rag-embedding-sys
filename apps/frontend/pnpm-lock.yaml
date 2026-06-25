@@ -595,8 +595,8 @@ importers:
         specifier: 0.1.13
         version: 0.1.13(@open-file-viewer/core@0.1.13(@mlightcad/libredwg-web@0.7.7)(pdfjs-dist@6.0.227))(vue@3.5.38(typescript@6.0.3))
       '@repo/shared-types':
-        specifier: file:../../../../packages/shared-types
-        version: file:../../packages/shared-types
+        specifier: link:../../../../packages/shared-types
+        version: link:../../../../packages/shared-types
       '@vben/access':
         specifier: workspace:*
         version: link:../../packages/effects/access
@@ -4164,9 +4164,6 @@ packages:
 
   '@quansync/fs@1.0.0':
     resolution: {integrity: sha512-4TJ3DFtlf1L5LDMaM6CanJ/0lckGNtJcMjQ1NAV6zDmA0tEHKZtxNKin8EgPaVX1YzljbxckyT2tJrpQKAtngQ==}
-
-  '@repo/shared-types@file:../../packages/shared-types':
-    resolution: {directory: ../../packages/shared-types, type: directory}
 
   '@rolldown/binding-android-arm64@1.0.0-rc.17':
     resolution: {integrity: sha512-s70pVGhw4zqGeFnXWvAzJDlvxhlRollagdCCKRgOsgUOH3N1l0LIxf83AtGzmb5SiVM4Hjl5HyarMRfdfj3DaQ==}
@@ -12816,8 +12813,6 @@ snapshots:
   '@quansync/fs@1.0.0':
     dependencies:
       quansync: 1.0.0
-
-  '@repo/shared-types@file:../../packages/shared-types': {}
 
   '@rolldown/binding-android-arm64@1.0.0-rc.17':
     optional: true

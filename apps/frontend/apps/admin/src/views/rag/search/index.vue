@@ -5,6 +5,7 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { Page, VbenButton, VbenSelect } from '@vben/common-ui';
+import { useAccess } from '@vben/access';
 
 import {
   ElEmpty,
@@ -13,8 +14,10 @@ import {
 } from 'element-plus';
 
 import { searchDocuments } from '#/api/rag';
+import { RAG_PERMISSIONS } from '#/constants/permissions';
 
 const router = useRouter();
+const { hasAccessByCodes } = useAccess();
 const query = ref('');
 const loading = ref(false);
 const results = ref<SearchResult[]>([]);
@@ -26,6 +29,9 @@ const sortOptions = [
   { label: '相关度从高到低', value: 'desc' },
   { label: '相关度从低到高', value: 'asc' },
 ];
+const canSearch = computed(() =>
+  hasAccessByCodes([RAG_PERMISSIONS.search.query]),
+);
 
 const sortedResults = computed(() =>
   [...results.value].sort((left, right) =>
@@ -98,6 +104,7 @@ function formatPrimaryScore(result: SearchResult) {
           @keyup.enter="handleSearch"
         />
         <VbenButton
+          :disabled="!canSearch"
           :loading="loading" size="lg"
           @click="handleSearch"
         >

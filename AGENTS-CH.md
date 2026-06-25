@@ -69,6 +69,53 @@
 - 使用 `pnpm dev:backend:docker` 启动基础设施、同步 Prisma schema 并运行后端。
 - `scripts` 下的脚本要可重复运行、可维护，并配套必要文档。
 
+## 数据库操作
+
+所有 Prisma 命令必须在 `apps/backend/` 目录下执行。环境变量从 `apps/backend/.env` 加载。
+
+### 数据库迁移
+
+```bash
+# 应用待执行的迁移（生产安全，不丢数据）
+cd apps/backend && node ../../scripts/with-env-docker.cjs prisma migrate deploy
+
+# 修改 schema.prisma 后创建并应用新迁移
+cd apps/backend && npx prisma migrate dev --name <描述性名称>
+
+# 重置数据库（危险操作——删除所有数据并重新应用所有迁移）
+cd apps/backend && npx prisma migrate reset
+```
+
+### 种子数据
+
+```bash
+# 重要：使用 npm script，不要用 `npx prisma db seed`
+# `npx prisma db seed` 需要 package.json 中的 `prisma.seed` 配置项，项目未配置。
+# 项目使用的是 `scripts.prisma:seed`。
+cd apps/backend && pnpm run prisma:seed
+```
+
+种子脚本（`prisma/seed.ts`）创建以下数据：
+- 角色：`super`、`admin`、`user`
+- 菜单：法律 RAG 知识库目录 + 检索/文档/索引任务/检索评估/知识库管理/法律问答菜单，系统管理目录 + 用户/角色/菜单/部门管理菜单，以及按钮级权限
+- 用户：`vben`/`123456`（super）、`admin`/`123456789`（admin）、`jack`/`123456`（user）
+
+### 生成 Prisma Client
+
+```bash
+# 修改 schema.prisma 后重新生成 Prisma Client
+cd apps/backend && node ../../scripts/with-env-docker.cjs prisma generate
+# 或：cd apps/backend && pnpm run prisma:generate
+```
+
+> 注意：如果后端 dev 服务正在运行，`prisma generate` 可能因文件锁定无法重命名查询引擎 DLL。需先停止 dev 服务，或重启后执行 `npx prisma generate`。
+
+### 常见陷阱
+
+- **不要使用 `npx prisma db seed`** — 它会静默跳过，因为 `package.json` 没有 `prisma.seed` 配置项。必须使用 `pnpm run prisma:seed`。
+- 在 `schema.prisma` 中新增 Prisma 模型后，必须执行 `npx prisma migrate dev --name <名称>` 来创建数据库表。种子脚本不会创建表。
+- 执行 seed 后如果前端菜单数据仍是旧数据，清除浏览器 localStorage（Vben admin 会持久化 access 状态）后重新登录。
+
 ## 仓库维护要求
 
 - 不要为了减少 import 就随意跨边界搬逻辑。即使应用边缘有少量重复，也要保持职责归属清晰。

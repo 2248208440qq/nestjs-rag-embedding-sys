@@ -1,47 +1,55 @@
 <script setup lang="ts">
-import { ElButton, ElEmpty, ElSpace, ElTable, ElTableColumn } from 'element-plus'
-import { Delete, Document, Search, View } from '@element-plus/icons-vue'
-import StatusTag from './StatusTag.vue'
-import SourceTypeTag from './SourceTypeTag.vue'
-import type { KnowledgeDocument } from '@repo/shared-types'
+import type { KnowledgeDocument } from '@repo/shared-types';
+
+import { Delete, Document, Search, View } from '@element-plus/icons-vue';
+import {
+  ElButton,
+  ElEmpty,
+  ElSpace,
+  ElTable,
+  ElTableColumn,
+} from 'element-plus';
+
+import SourceTypeTag from '../tags/SourceTypeTag.vue';
+import StatusTag from '../tags/StatusTag.vue';
 
 defineProps<{
-  documents: KnowledgeDocument[]
-  loading?: boolean
-  actionLoadingIds?: string[]
-  actionLoadingType?: 'extract' | 'index' | 'delete'
-}>()
+  actionLoadingIds?: string[];
+  actionLoadingType?: 'delete' | 'extract' | 'index';
+  documents: KnowledgeDocument[];
+  loading?: boolean;
+}>();
 
 const emit = defineEmits<{
-  view: [document: KnowledgeDocument]
-  extract: [id: string]
-  index: [id: string]
-  delete: [document: KnowledgeDocument]
-}>()
+  delete: [document: KnowledgeDocument];
+  extract: [id: string];
+  index: [id: string];
+  view: [document: KnowledgeDocument];
+}>();
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString('zh-CN')
+  return new Date(dateStr).toLocaleString('zh-CN');
 }
 
 function canIndex(document: KnowledgeDocument) {
-  return document.status === 'parsed' || document.status === 'indexed'
+  return document.status === 'parsed' || document.status === 'indexed';
 }
 
 function indexLabel(document: KnowledgeDocument) {
-  return document.status === 'indexed' ? '更新索引' : '索引'
+  return document.status === 'indexed' ? '更新索引' : '索引';
 }
 
 function isActionLoading(
   document: KnowledgeDocument,
   loadingIds: string[] | undefined,
-  loadingType: 'extract' | 'index' | 'delete' | undefined,
-  type: 'extract' | 'index' | 'delete',
+  loadingType: 'delete' | 'extract' | 'index' | undefined,
+  type: 'delete' | 'extract' | 'index',
 ) {
-  return loadingType === type && Boolean(loadingIds?.includes(document.id))
+  return loadingType === type && Boolean(loadingIds?.includes(document.id));
 }
 
 function isRowBusy(document: KnowledgeDocument, loadingIds: string[] | undefined) {
-  return Boolean(loadingIds?.includes(document.id))
+  return Boolean(loadingIds?.includes(document.id));
 }
 </script>
 

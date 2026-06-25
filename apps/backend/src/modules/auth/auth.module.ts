@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { ConfigModule } from '@nestjs/config';
 
 import { AppConfigModule } from '../../config/config.module';
 import { AppConfigService } from '../../config/app-config.service';
@@ -14,7 +13,7 @@ import { AuthRepository } from './auth.repository';
     PrismaModule,
     AppConfigModule,
     JwtModule.registerAsync({
-      imports: [ConfigModule],
+      imports: [AppConfigModule],
       inject: [AppConfigService],
       useFactory: (config: AppConfigService) => ({
         secret: config.jwtSecret,

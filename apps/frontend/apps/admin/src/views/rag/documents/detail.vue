@@ -11,6 +11,7 @@ import {
   VbenDescriptionsItem,
   VbenSpinner,
 } from '@vben/common-ui';
+import { useAccess } from '@vben/access';
 
 import {
   ElMessage,
@@ -23,11 +24,13 @@ import {
   fetchDocument,
   indexDocument,
 } from '#/api/rag';
+import { RAG_PERMISSIONS } from '#/constants/permissions';
 
 import FilePreviewDialog from './components/FilePreviewDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
+const { hasAccessByCodes } = useAccess();
 const document = ref<KnowledgeDocument>();
 const loading = ref(false);
 const actionLoading = ref(false);
@@ -35,6 +38,15 @@ const previewVisible = ref(false);
 
 const canIndex = computed(
   () => document.value?.status === 'parsed' || document.value?.status === 'indexed',
+);
+const canParseDocument = computed(() =>
+  hasAccessByCodes([RAG_PERMISSIONS.document.parse]),
+);
+const canIndexDocument = computed(() =>
+  hasAccessByCodes([RAG_PERMISSIONS.document.index]),
+);
+const canDeleteDocument = computed(() =>
+  hasAccessByCodes([RAG_PERMISSIONS.document.delete]),
 );
 const indexButtonText = computed(() =>
   document.value?.status === 'indexed' ? '更新索引' : '构建索引',
@@ -209,6 +221,7 @@ onMounted(loadDocument);
             预览文件
           </VbenButton>
           <VbenButton
+            v-if="canParseDocument"
             :disabled="document.status !== 'uploaded' || actionLoading"
             :loading="actionLoading" variant="secondary"
             @click="handleExtract"
@@ -216,6 +229,7 @@ onMounted(loadDocument);
             解析文档
           </VbenButton>
           <VbenButton
+            v-if="canIndexDocument"
             :disabled="!canIndex || actionLoading"
             :loading="actionLoading" variant="secondary"
             @click="handleIndex"
@@ -223,6 +237,7 @@ onMounted(loadDocument);
             {{ indexButtonText }}
           </VbenButton>
           <VbenButton
+            v-if="canDeleteDocument"
             :disabled="actionLoading"
             :loading="actionLoading" variant="destructive"
             @click="handleDelete"

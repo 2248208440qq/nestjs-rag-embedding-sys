@@ -71,6 +71,53 @@
 - Use `pnpm dev:backend:docker` to start infrastructure, apply Prisma schema, and run the backend.
 - Keep scripts under `scripts` deterministic, documented, and safe to run repeatedly.
 
+## Database Operations
+
+All Prisma commands must be run from `apps/backend/`. Environment variables are loaded from `apps/backend/.env`.
+
+### Migration
+
+```bash
+# Apply pending migrations (production-safe, no data loss)
+cd apps/backend && node ../../scripts/with-env-docker.cjs prisma migrate deploy
+
+# Create and apply a new migration after schema.prisma changes
+cd apps/backend && npx prisma migrate dev --name <descriptive_name>
+
+# Reset database (DESTRUCTIVE — drops all data and re-applies all migrations)
+cd apps/backend && npx prisma migrate reset
+```
+
+### Seed
+
+```bash
+# IMPORTANT: use the npm script, NOT `npx prisma db seed`
+# `npx prisma db seed` requires a `prisma.seed` field in package.json which is NOT configured.
+# The project uses `scripts.prisma:seed` instead.
+cd apps/backend && pnpm run prisma:seed
+```
+
+The seed script (`prisma/seed.ts`) creates:
+- Roles: `super`, `admin`, `user`
+- Menus: RAG knowledge base catalog + search/documents/index-jobs/evaluation/knowledge-base/qa menus, system management catalog + users/roles/menus/depts menus, plus button-level permissions
+- Users: `vben`/`123456` (super), `admin`/`123456789` (admin), `jack`/`123456` (user)
+
+### Generate Prisma Client
+
+```bash
+# After schema.prisma changes, regenerate the Prisma Client
+cd apps/backend && node ../../scripts/with-env-docker.cjs prisma generate
+# or: cd apps/backend && pnpm run prisma:generate
+```
+
+> Note: if the backend dev server is running, `prisma generate` may fail to rename the query engine DLL due to a file lock. Stop the dev server first, or run `npx prisma generate` after restarting.
+
+### Common Pitfalls
+
+- **Do not use `npx prisma db seed`** — it silently no-ops because `package.json` lacks the `prisma.seed` config field. Always use `pnpm run prisma:seed`.
+- After adding a new Prisma model to `schema.prisma`, you must run `npx prisma migrate dev --name <name>` to create the table. The seed script does not create tables.
+- If the frontend shows stale menu data after seeding, clear browser localStorage (the Vben admin persists access state) and re-login.
+
 ## Repository Hygiene
 
 - Do not move logic across boundaries just to reduce imports. Keep ownership clear even if that means a little duplication at app edges.

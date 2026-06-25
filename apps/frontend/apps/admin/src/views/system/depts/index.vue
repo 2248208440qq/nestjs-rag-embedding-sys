@@ -6,10 +6,12 @@ import { computed, reactive, ref } from 'vue';
 
 import { Page, VbenButton } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
+import { useAccess } from '@vben/access';
 
 import { useVbenDrawer } from '@vben/common-ui';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { deleteDeptApi, getDeptListApi } from '#/api';
+import { SYSTEM_PERMISSIONS } from '#/constants/permissions';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 import { getStatusOptions, useColumns } from './data';
@@ -24,6 +26,17 @@ type QueryParams = {
 
 const fullTreeData = ref<DeptRecord[]>([]);
 const tableLoading = ref(false);
+const { hasAccessByCodes } = useAccess();
+
+const canCreate = computed(() =>
+  hasAccessByCodes([SYSTEM_PERMISSIONS.dept.create]),
+);
+const canUpdate = computed(() =>
+  hasAccessByCodes([SYSTEM_PERMISSIONS.dept.update]),
+);
+const canDelete = computed(() =>
+  hasAccessByCodes([SYSTEM_PERMISSIONS.dept.delete]),
+);
 
 const searchForm = reactive({
   keyword: '',
@@ -224,7 +237,7 @@ async function onDelete(row: DeptRecord) {
       <Grid table-title="部门列表">
         <template #toolbar-tools>
           <div class="flex items-center gap-2">
-            <VbenButton @click="onCreate">
+            <VbenButton v-if="canCreate" @click="onCreate">
               <Plus class="size-5" />
               新建部门
             </VbenButton>
@@ -235,13 +248,14 @@ async function onDelete(row: DeptRecord) {
         </template>
         <template #operation="{ row }">
           <div class="flex w-full justify-center gap-2">
-            <VbenButton size="sm" variant="link" @click="onAppend(row)">
+            <VbenButton v-if="canCreate" size="sm" variant="link" @click="onAppend(row)">
               新增子级
             </VbenButton>
-            <VbenButton size="sm" variant="link" @click="onEdit(row)">
+            <VbenButton v-if="canUpdate" size="sm" variant="link" @click="onEdit(row)">
               修改
             </VbenButton>
             <VbenButton
+              v-if="canDelete"
               size="sm"
               variant="link"
               class="text-destructive hover:text-destructive"

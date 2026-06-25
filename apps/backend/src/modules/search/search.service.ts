@@ -220,6 +220,17 @@ export class SearchService {
       )})`);
     }
 
+    if (request.knowledgeBaseIds?.length) {
+      conditions.push(Prisma.sql`EXISTS (
+        SELECT 1
+        FROM knowledge_base_documents kbd
+        WHERE kbd.document_id = d.id
+          AND kbd.knowledge_base_id IN (${Prisma.join(
+            request.knowledgeBaseIds.map((id) => Prisma.sql`${id}::uuid`),
+          )})
+      )`);
+    }
+
     if (request.sourceTypes?.length) {
       conditions.push(Prisma.sql`d."sourceType"::text IN (${Prisma.join(
         request.sourceTypes,

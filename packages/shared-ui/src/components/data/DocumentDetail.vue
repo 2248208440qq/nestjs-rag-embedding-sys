@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { ElDescriptions, ElDescriptionsItem, ElSpace, ElTag } from 'element-plus'
-import StatusTag from './StatusTag.vue'
-import SourceTypeTag from './SourceTypeTag.vue'
-import type { KnowledgeDocument } from '@repo/shared-types'
+import type { KnowledgeDocument } from '@repo/shared-types';
+
+import { ElDescriptions, ElDescriptionsItem, ElSpace, ElTag } from 'element-plus';
+
+import SourceTypeTag from '../tags/SourceTypeTag.vue';
+import StatusTag from '../tags/StatusTag.vue';
 
 defineProps<{
-  document: KnowledgeDocument
-}>()
+  document: KnowledgeDocument;
+}>();
 
 function formatDate(dateStr: string | undefined) {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString('zh-CN')
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleString('zh-CN');
 }
 </script>
 

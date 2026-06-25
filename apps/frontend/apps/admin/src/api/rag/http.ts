@@ -8,6 +8,13 @@ export function ragPost<T>(path: string, data?: unknown) {
   return requestClient.post<T>(path, data);
 }
 
+export function ragPatch<T>(path: string, data?: unknown) {
+  return requestClient.request<T>(path, {
+    data,
+    method: 'PATCH',
+  });
+}
+
 export function ragPostForm<T>(path: string, data: FormData) {
   return requestClient.post<T>(path, data, {
     headers: {

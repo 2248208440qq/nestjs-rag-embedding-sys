@@ -1,50 +1,51 @@
 <script setup lang="ts">
-import { ElEmpty, ElTag } from 'element-plus'
-import type { SearchResult } from '@repo/shared-types'
+import type { SearchResult } from '@repo/shared-types';
+
+import { ElEmpty, ElTag } from 'element-plus';
 
 defineProps<{
-  results: SearchResult[]
-  loading?: boolean
-}>()
+  loading?: boolean;
+  results: SearchResult[];
+}>();
 
 const emit = defineEmits<{
-  click: [result: SearchResult]
-}>()
+  click: [result: SearchResult];
+}>();
 
 function formatRRFScore(score: number) {
-  return `${(score * 100).toFixed(1)}`
+  return `${(score * 100).toFixed(1)}`;
 }
 
 function formatVectorScore(score: number) {
-  return `${(score * 100).toFixed(1)}%`
+  return `${(score * 100).toFixed(1)}%`;
 }
 
 function formatKeywordScore(score: number) {
-  return score >= 1 ? '精确命中' : score.toFixed(2)
+  return score >= 1 ? '精准命中' : score.toFixed(2);
 }
 
 function matchTypeLabel(result: SearchResult) {
-  if (result.matchType === 'hybrid') return '混合匹配'
-  if (result.matchType === 'keyword') return '关键词匹配'
-  return '语义匹配'
+  if (result.matchType === 'hybrid') return '混合匹配';
+  if (result.matchType === 'keyword') return '关键词匹配';
+  return '语义匹配';
 }
 
 function matchTypeTagType(result: SearchResult) {
-  if (result.matchType === 'hybrid') return 'success'
-  if (result.matchType === 'keyword') return 'warning'
-  return 'primary'
+  if (result.matchType === 'hybrid') return 'success';
+  if (result.matchType === 'keyword') return 'warning';
+  return 'primary';
 }
 
 function scoreTitle(result: SearchResult) {
-  return result.matchType === 'keyword' ? '关键词分' : '语义相似度'
+  return result.matchType === 'keyword' ? '关键词分' : '语义相似度';
 }
 
 function scoreValue(result: SearchResult) {
   if (result.matchType === 'keyword') {
-    return formatKeywordScore(result.scores?.keyword ?? 0)
+    return formatKeywordScore(result.scores?.keyword ?? 0);
   }
 
-  return formatVectorScore(result.scores?.vector ?? 0)
+  return formatVectorScore(result.scores?.vector ?? 0);
 }
 </script>
 

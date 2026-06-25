@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { ElButton, ElInput } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search } from '@element-plus/icons-vue';
+import { ElButton, ElInput } from 'element-plus';
 
-const query = defineModel<string>({ required: true })
+const query = defineModel<string>({ required: true });
 
 const emit = defineEmits<{
-  search: [query: string]
-}>()
+  search: [query: string];
+}>();
 
 function handleSearch() {
-  const trimmed = query.value.trim()
+  const trimmed = query.value.trim();
   if (trimmed) {
-    emit('search', trimmed)
+    emit('search', trimmed);
   }
 }
 </script>

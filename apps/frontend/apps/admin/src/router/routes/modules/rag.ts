@@ -29,6 +29,42 @@ const routes: RouteRecordRaw[] = [
         path: '/rag/documents',
       },
       {
+        component: () => import('#/views/rag/index-jobs/index.vue'),
+        meta: {
+          icon: 'lucide:list-checks',
+          title: '索引任务',
+        },
+        name: 'RagIndexJobs',
+        path: '/rag/index-jobs',
+      },
+      {
+        component: () => import('#/views/rag/evaluation/index.vue'),
+        meta: {
+          icon: 'lucide:chart-no-axes-combined',
+          title: '检索评估',
+        },
+        name: 'RagEvaluation',
+        path: '/rag/evaluation',
+      },
+      {
+        component: () => import('#/views/rag/knowledge-base/index.vue'),
+        meta: {
+          icon: 'lucide:library-big',
+          title: '知识库管理',
+        },
+        name: 'RagKnowledgeBase',
+        path: '/rag/knowledge-base',
+      },
+      {
+        component: () => import('#/views/rag/qa/index.vue'),
+        meta: {
+          icon: 'lucide:messages-square',
+          title: '法律问答',
+        },
+        name: 'RagQa',
+        path: '/rag/qa',
+      },
+      {
         component: () => import('#/views/rag/documents/detail.vue'),
         meta: {
           activeMenu: '/rag/documents',

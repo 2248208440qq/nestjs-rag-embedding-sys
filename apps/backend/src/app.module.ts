@@ -10,9 +10,13 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { DeptsModule } from './modules/depts/depts.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { EvaluationModule } from './modules/evaluation/evaluation.module';
 import { FilesModule } from './modules/files/files.module';
 import { HealthModule } from './modules/health/health.module';
+import { IndexJobsModule } from './modules/index-jobs/index-jobs.module';
+import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 import { MenusModule } from './modules/menus/menus.module';
+import { QaModule } from './modules/qa/qa.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { SearchModule } from './modules/search/search.module';
 import { UsersModule } from './modules/users/users.module';
@@ -33,6 +37,10 @@ import { RedisModule } from './redis/redis.module';
     HealthModule,
     FilesModule,
     DocumentsModule,
+    IndexJobsModule,
+    EvaluationModule,
+    KnowledgeBaseModule,
+    QaModule,
     SearchModule,
   ],
   controllers: [AppController],

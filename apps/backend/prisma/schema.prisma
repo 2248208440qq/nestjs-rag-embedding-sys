@@ -24,6 +24,8 @@ model KnowledgeDocument {
   tags             String[]                 @default([])
   metadata         Json                     @default("{}")
   chunks           KnowledgeDocumentChunk[]
+  knowledgeBases   KnowledgeBaseDocument[]
+  indexJobs        IndexJob[]
   createdAt        DateTime                 @default(now()) @map("created_at")
   updatedAt        DateTime                 @updatedAt @map("updated_at")
 
@@ -49,7 +51,9 @@ model KnowledgeDocumentChunk {
 
 enum KnowledgeDocumentStatus {
   uploaded
+  parsing
   parsed
+  indexing
   indexed
   failed
 }
@@ -61,6 +65,120 @@ enum KnowledgeDocumentSourceType {
   contract
   internal
   other
+}
+
+model IndexJob {
+  id           String                   @id @default(uuid()) @db.Uuid
+  documentId   String?                  @map("document_id") @db.Uuid
+  document     KnowledgeDocument?       @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  type         IndexJobType
+  status       IndexJobStatus           @default(pending)
+  progress     Int                      @default(0)
+  currentStep  String?                  @map("current_step")
+  errorMessage String?                  @map("error_message")
+  retryCount   Int                      @default(0) @map("retry_count")
+  result       Json                     @default("{}")
+  startedAt    DateTime?                @map("started_at")
+  finishedAt   DateTime?                @map("finished_at")
+  createdAt    DateTime                 @default(now()) @map("created_at")
+  updatedAt    DateTime                 @updatedAt @map("updated_at")
+
+  @@index([documentId])
+  @@index([status])
+  @@index([type])
+  @@map("index_jobs")
+}
+
+model EvaluationCase {
+  id                  String          @id @default(uuid()) @db.Uuid
+  query               String
+  expectedDocumentIds String[]        @default([]) @map("expected_document_ids")
+  expectedChunkIds    String[]        @default([]) @map("expected_chunk_ids")
+  expectedArticleRefs String[]        @default([]) @map("expected_article_refs")
+  expectedKeywords    String[]        @default([]) @map("expected_keywords")
+  difficulty          String?
+  tags                String[]        @default([])
+  runs                EvaluationRun[]
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  @@map("evaluation_cases")
+}
+
+model EvaluationRun {
+  id             String          @id @default(uuid()) @db.Uuid
+  caseId         String?         @map("case_id") @db.Uuid
+  evaluationCase EvaluationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  query          String
+  topK           Int             @default(20) @map("top_k")
+  searchParams   Json            @default("{}") @map("search_params")
+  resultSnapshot Json            @default("[]") @map("result_snapshot")
+  metrics        Json            @default("{}")
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  @@index([caseId])
+  @@map("evaluation_runs")
+}
+
+model KnowledgeBase {
+  id          String                  @id @default(uuid()) @db.Uuid
+  name        String
+  code        String                  @unique
+  description String?
+  category    String?
+  status      KnowledgeBaseStatus     @default(active)
+  documents   KnowledgeBaseDocument[]
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+
+  @@map("knowledge_bases")
+}
+
+model KnowledgeBaseDocument {
+  id              String            @id @default(uuid()) @db.Uuid
+  knowledgeBaseId String            @map("knowledge_base_id") @db.Uuid
+  documentId      String            @map("document_id") @db.Uuid
+  knowledgeBase   KnowledgeBase     @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  document        KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  @@unique([knowledgeBaseId, documentId])
+  @@index([documentId])
+  @@map("knowledge_base_documents")
+}
+
+model QaTrace {
+  id             String   @id @default(uuid()) @db.Uuid
+  question       String
+  answer         String
+  searchParams   Json     @default("{}") @map("search_params")
+  sourceSnapshot Json     @default("[]") @map("source_snapshot")
+  citations      Json     @default("[]")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("qa_traces")
+}
+
+enum IndexJobType {
+  parse_document
+  chunk_document
+  generate_embeddings
+  rebuild_document_index
+  rebuild_all_indexes
+  delete_document_index
+}
+
+enum IndexJobStatus {
+  pending
+  running
+  succeeded
+  failed
+  canceled
+}
+
+enum KnowledgeBaseStatus {
+  active
+  archived
 }
 
 // ==================== RBAC Models ====================

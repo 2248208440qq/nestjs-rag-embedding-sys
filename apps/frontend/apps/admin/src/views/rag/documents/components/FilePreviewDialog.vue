@@ -1,29 +1,16 @@
 <script lang="ts" setup>
 import type { KnowledgeDocument } from '#/api/rag';
 
-import { computed, shallowRef, watch } from 'vue';
+import { computed, onBeforeUnmount, shallowRef, watch } from 'vue';
 
-import {
-  fallbackPlugin,
-  imagePlugin,
-  officePlugin,
-  pdfPlugin,
-  textPlugin,
-} from '@open-file-viewer/core';
-import '@open-file-viewer/core/style.css';
-import { OpenFileViewer } from '@open-file-viewer/vue';
-import { VbenIconButton } from '@vben/common-ui';
+import { useVbenModal, VbenIconButton } from '@vben/common-ui';
 import { IconifyIcon } from '@vben/icons';
-import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
-import {
-  ElDialog,
-  ElEmpty,
-  ElMessage,
-  ElSkeleton,
-} from 'element-plus';
+import { ElMessage } from 'element-plus';
 
 import { downloadDocumentFile } from '#/api/rag';
+
+import FilePreviewer from './FilePreviewer.vue';
 
 const props = defineProps<{
   document?: KnowledgeDocument;
@@ -32,55 +19,87 @@ const props = defineProps<{
 const visible = defineModel<boolean>({ default: false });
 
 const loading = shallowRef(false);
-const fullscreen = shallowRef(false);
 const previewFile = shallowRef<File>();
+let loadToken = 0;
 
-const plugins = [
-  imagePlugin(),
-  textPlugin(),
-  pdfPlugin({
-    useFetchData: true,
-    workerSrc: pdfWorkerSrc,
-  }),
-  officePlugin({
-    pdf: {
-      useFetchData: true,
-      workerSrc: pdfWorkerSrc,
-    },
-  }),
-  fallbackPlugin(),
-];
+const [PreviewModal, previewModalApi] = useVbenModal({
+  destroyOnClose: true,
+  footer: false,
+  fullscreenButton: true,
+  onOpenChange(isOpen) {
+    if (visible.value !== isOpen) {
+      visible.value = isOpen;
+    }
+
+    if (!isOpen) {
+      resetPreview();
+    }
+  },
+});
 
 const fileName = computed(
   () => props.document?.originalFileName ?? props.document?.title ?? 'document',
 );
-const dialogWidth = computed(() => (fullscreen.value ? '100%' : '86%'));
-const viewerHeight = computed(() =>
-  fullscreen.value ? 'calc(100vh - 74px)' : '72vh',
+const modalTitle = computed(() => `文件预览：${fileName.value}`);
+const viewerHeight = computed(() => '100%');
+const fileTypeLabel = computed(() => {
+  const mimeType = previewFile.value?.type || props.document?.mimeType;
+  if (mimeType) return mimeType;
+
+  const extension = fileName.value.split('.').pop();
+  return extension ? `.${extension}` : '未知类型';
+});
+const fileSizeLabel = computed(() =>
+  formatSize(previewFile.value?.size ?? props.document?.size),
 );
 
+function formatSize(size?: number) {
+  if (!size) return '-';
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(2)} MB`;
+}
+
 function resetPreview() {
+  loadToken += 1;
   loading.value = false;
-  fullscreen.value = false;
   previewFile.value = undefined;
 }
 
 async function loadPreviewFile(document: KnowledgeDocument) {
+  const currentToken = ++loadToken;
   loading.value = true;
   previewFile.value = undefined;
 
   try {
     const blob = await downloadDocumentFile(document.id);
+    if (currentToken !== loadToken || !visible.value) {
+      return;
+    }
+
     previewFile.value = new File([blob], fileName.value, {
       type: document.mimeType || blob.type || 'application/octet-stream',
     });
   } catch (error) {
+    if (currentToken !== loadToken) {
+      return;
+    }
+
     const message = error instanceof Error ? error.message : '文件加载失败';
     ElMessage.error(message);
     visible.value = false;
   } finally {
-    loading.value = false;
+    if (currentToken === loadToken) {
+      loading.value = false;
+    }
   }
+}
+
+function reloadPreview() {
+  if (!props.document || loading.value) {
+    return;
+  }
+
+  void loadPreviewFile(props.document);
 }
 
 function handleViewerError(error: Error) {
@@ -90,122 +109,115 @@ function handleViewerError(error: Error) {
 watch(
   () => visible.value,
   (nextVisible) => {
+    if (nextVisible) {
+      previewModalApi.open();
+      return;
+    }
+
+    void previewModalApi.close();
+  },
+);
+
+watch(
+  () => [visible.value, props.document?.id] as const,
+  ([nextVisible, documentId]) => {
     if (!nextVisible) {
       resetPreview();
       return;
     }
 
-    if (props.document) {
-      void loadPreviewFile(props.document);
+    if (!documentId || !props.document) {
+      resetPreview();
+      return;
     }
+
+    void loadPreviewFile(props.document);
   },
 );
+
+onBeforeUnmount(resetPreview);
 </script>
 
 <template>
-  <ElDialog
-    v-model="visible"
-    append-to-body
-    class="rag-file-preview-dialog"
-    destroy-on-close
-    :fullscreen="fullscreen"
-    :show-close="false"
-    :width="dialogWidth"
+  <PreviewModal
+    :title="modalTitle"
+    class="rag-file-preview-modal h-[90vh] w-[86vw] max-w-[1280px]"
+    content-class="overflow-hidden p-3"
   >
-    <template #header>
-      <div class="preview-header">
-        <div class="preview-title">
-          <span class="preview-title-text">{{ fileName }}</span>
-          <span class="preview-subtitle">原始文件预览</span>
+    <div class="preview-shell">
+      <div class="preview-toolbar">
+        <div class="preview-meta">
+          <span class="preview-meta__title">原始文件预览</span>
+          <span>{{ fileTypeLabel }}</span>
+          <span>{{ fileSizeLabel }}</span>
         </div>
         <div class="preview-actions">
           <VbenIconButton
-            title="全屏"
+            :disabled="loading || !document"
+            title="重新加载"
             variant="ghost"
-            @click="fullscreen = !fullscreen"
+            @click="reloadPreview"
           >
-            <IconifyIcon icon="lucide:maximize-2" />
-          </VbenIconButton>
-          <VbenIconButton
-            title="关闭"
-            variant="ghost"
-            @click="visible = false"
-          >
-            <IconifyIcon icon="lucide:x" />
+            <IconifyIcon icon="lucide:refresh-cw" />
           </VbenIconButton>
         </div>
       </div>
-    </template>
 
-    <div class="preview-body" :style="{ height: viewerHeight }">
-      <ElSkeleton v-if="loading" animated :rows="8" />
-      <OpenFileViewer
-        v-else-if="previewFile"
+      <FilePreviewer
         :file="previewFile"
-        :file-name="previewFile.name"
         :height="viewerHeight"
-        :mime-type="previewFile.type"
-        :plugins="plugins"
-        fallback="download"
-        fit="contain"
-        theme="auto"
-        :toolbar="{
-          download: true,
-          fullscreen: true,
-          print: true,
-          rotate: true,
-          search: true,
-          zoom: true,
-        }"
-        width="100%"
+        :loading="loading"
         @error="handleViewerError"
       />
-      <ElEmpty v-else description="暂无可预览文件" />
     </div>
-  </ElDialog>
+  </PreviewModal>
 </template>
 
 <style scoped>
-.preview-header {
+.preview-shell {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+}
+
+.preview-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  background: hsl(var(--muted) / 36%);
+  padding: 8px 10px 8px 12px;
 }
 
-.preview-title {
+.preview-meta {
   display: flex;
   min-width: 0;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.preview-title-text {
-  overflow: hidden;
-  color: var(--el-text-color-primary);
-  font-size: 15px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.preview-subtitle {
-  color: var(--el-text-color-secondary);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: hsl(var(--muted-foreground));
   font-size: 12px;
+}
+
+.preview-meta span:not(.preview-meta__title) {
+  border-radius: 999px;
+  background: hsl(var(--background));
+  padding: 3px 8px;
+}
+
+.preview-meta__title {
+  color: hsl(var(--foreground));
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .preview-actions {
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 6px;
-}
-
-.preview-body {
-  min-height: 420px;
-  overflow: hidden;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 6px;
-  background: var(--el-bg-color-page);
 }
 </style>
