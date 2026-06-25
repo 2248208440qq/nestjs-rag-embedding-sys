@@ -4,25 +4,33 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { createHash, randomBytes } from 'crypto';
+import { randomBytes } from 'crypto';
 import type { UserInfo, LoginResult, JwtPayload } from '@repo/shared-types';
 import * as bcrypt from 'bcrypt';
+import { AppConfigService } from '../../config/app-config.service';
 import { AuthRepository } from './auth.repository';
 import { RedisService } from '../../redis/redis.service';
-import { ACCESS_TOKEN_BLACKLIST_PREFIX } from '../../common/guards/jwt-auth.guard';
+import { hashToken } from '../../common/utils/token.util';
+import {
+  ACCESS_TOKEN_BLACKLIST_PREFIX,
+  USER_STATUS_PREFIX,
+} from '../../common/guards/jwt-auth.guard';
 
 /** Redis key prefix for individual refresh tokens: `auth:refresh:{sha256Hash}` → userId */
 const REFRESH_TOKEN_PREFIX = 'auth:refresh:';
 /** Redis key prefix for the set of refresh-token hashes belonging to a user. */
 const USER_TOKENS_PREFIX = 'auth:user_tokens:';
+/** Redis key prefix for consumed (already-rotated) refresh tokens — used for reuse detection. */
+const CONSUMED_TOKENS_PREFIX = 'auth:consumed:';
+/** TTL (seconds) for consumed-token entries — slightly longer than refresh token TTL. */
+const CONSUMED_TTL_BUFFER = 60;
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly appConfig: AppConfigService,
     private readonly redisService: RedisService,
   ) {}
 
@@ -62,6 +70,9 @@ export class AuthService {
     // Store refresh token in Redis with automatic TTL expiry
     await this.storeRefreshToken(hashedToken, user.id, ttlSeconds);
 
+    // Cache user status for the guard to check without a DB query
+    await this.cacheUserStatus(user.id, 'active', ttlSeconds);
+
     return { accessToken, userInfo, refreshToken };
   }
 
@@ -85,7 +96,7 @@ export class AuthService {
     if (accessToken) {
       const remainingTtl = this.getAccessTokenRemainingTtl(accessToken);
       if (remainingTtl > 0) {
-        const tokenHash = this.hashToken(accessToken);
+        const tokenHash = hashToken(accessToken);
         await this.redisService.setex(
           `${ACCESS_TOKEN_BLACKLIST_PREFIX}${tokenHash}`,
           remainingTtl,
@@ -102,18 +113,40 @@ export class AuthService {
       throw new BadRequestException('No refresh token provided');
     }
 
-    const hashedToken = this.hashToken(refreshToken);
-    const userId = await this.redisService.get(
-      `${REFRESH_TOKEN_PREFIX}${hashedToken}`,
-    );
+    const hashedToken = hashToken(refreshToken);
+    const tokenKey = `${REFRESH_TOKEN_PREFIX}${hashedToken}`;
+    const userId = await this.redisService.get(tokenKey);
 
     if (!userId) {
+      // --- Reuse detection ---
+      // If the token was already consumed (rotated), an attacker may be
+      // replaying it.  Revoke ALL tokens for this user immediately.
+      const consumedUserId = await this.redisService.get(
+        `${CONSUMED_TOKENS_PREFIX}${hashedToken}`,
+      );
+      if (consumedUserId) {
+        await this.revokeAllUserTokens(consumedUserId);
+        throw new UnauthorizedException(
+          'Refresh token reuse detected — all sessions have been revoked',
+        );
+      }
+      // --- End reuse detection ---
+
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Delete the old refresh token (rotation)
-    await this.redisService.del(`${REFRESH_TOKEN_PREFIX}${hashedToken}`);
+    // Delete the old refresh token and mark it as consumed (for reuse detection)
+    await this.redisService.del(tokenKey);
     await this.redisService.srem(`${USER_TOKENS_PREFIX}${userId}`, hashedToken);
+
+    const refreshTtl = this.appConfig.parseExpiresInSeconds(
+      this.appConfig.jwtRefreshExpiresIn,
+    );
+    await this.redisService.setex(
+      `${CONSUMED_TOKENS_PREFIX}${hashedToken}`,
+      refreshTtl + CONSUMED_TTL_BUFFER,
+      userId,
+    );
 
     const user = await this.authRepository.findUserById(userId);
     if (!user) {
@@ -137,6 +170,9 @@ export class AuthService {
     const accessToken = this.generateAccessToken(userInfo);
     const newRefresh = this.createRefreshToken();
     await this.storeRefreshToken(newRefresh.hashedToken, user.id, newRefresh.ttlSeconds);
+
+    // Refresh the cached user status
+    await this.cacheUserStatus(user.id, 'active', newRefresh.ttlSeconds);
 
     return {
       accessToken,
@@ -167,19 +203,18 @@ export class AuthService {
   // -----------------------------------------------------------------------
 
   private generateAccessToken(userInfo: UserInfo): string {
+    // Only essential fields go into the JWT.  realName / homePath / avatar
+    // are retrieved via GET /user/info to keep the token compact.
     const payload: Omit<JwtPayload, 'iat' | 'exp'> = {
       sub: userInfo.id,
       username: userInfo.username,
       roles: userInfo.roles,
-      realName: userInfo.realName,
-      homePath: userInfo.homePath,
-      avatar: userInfo.avatar,
     };
 
     return this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRES_IN', '15m') as any,
-      issuer: this.configService.get<string>('JWT_ISSUER', 'rag-embedding'),
-      audience: this.configService.get<string>('JWT_AUDIENCE', 'rag-embedding-api'),
+      expiresIn: this.appConfig.parseExpiresInSeconds(this.appConfig.jwtAccessExpiresIn),
+      issuer: this.appConfig.jwtIssuer,
+      audience: this.appConfig.jwtAudience,
     });
   }
 
@@ -193,35 +228,70 @@ export class AuthService {
     ttlSeconds: number;
   } {
     const token = randomBytes(32).toString('hex');
-    const hashedToken = this.hashToken(token);
-    const ttlSeconds = this.parseExpiresInSeconds(
-      this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
+    const hashedToken = hashToken(token);
+    const ttlSeconds = this.appConfig.parseExpiresInSeconds(
+      this.appConfig.jwtRefreshExpiresIn,
     );
     return { refreshToken: token, hashedToken, ttlSeconds };
   }
 
   /**
    * Stores a refresh token hash in Redis and tracks it in the user's token set.
+   * The set TTL is set only on first creation, not reset on every addition,
+   * to avoid extending the set lifetime beyond the oldest token's expiry.
    */
   private async storeRefreshToken(
     hashedToken: string,
     userId: string,
     ttlSeconds: number,
   ): Promise<void> {
+    const tokenKey = `${REFRESH_TOKEN_PREFIX}${hashedToken}`;
+    const setKey = `${USER_TOKENS_PREFIX}${userId}`;
+
+    await this.redisService.setex(tokenKey, ttlSeconds, userId);
+    await this.redisService.sadd(setKey, hashedToken);
+
+    // Only set TTL on the set if it doesn't already have one.
+    // This prevents resetting the TTL on every login, which would cause
+    // the set to outlive its oldest token.
+    const setTtl = await this.redisService.ttl(setKey);
+    if (setTtl === -1) {
+      await this.redisService.expire(setKey, ttlSeconds);
+    }
+  }
+
+  /**
+   * Caches the user's status in Redis so the JwtAuthGuard can check it
+   * without querying the database on every request.
+   */
+  private async cacheUserStatus(
+    userId: string,
+    status: string,
+    ttlSeconds: number,
+  ): Promise<void> {
     await this.redisService.setex(
-      `${REFRESH_TOKEN_PREFIX}${hashedToken}`,
+      `${USER_STATUS_PREFIX}${userId}`,
       ttlSeconds,
-      userId,
-    );
-    await this.redisService.sadd(`${USER_TOKENS_PREFIX}${userId}`, hashedToken);
-    await this.redisService.expire(
-      `${USER_TOKENS_PREFIX}${userId}`,
-      ttlSeconds,
+      status,
     );
   }
 
-  private hashToken(token: string): string {
-    return createHash('sha256').update(token).digest('hex');
+  /**
+   * Revokes all refresh tokens and cached status for a user.
+   * Called when refresh-token reuse is detected.
+   */
+  private async revokeAllUserTokens(userId: string): Promise<void> {
+    const tokenHashes = await this.redisService.smembers(
+      `${USER_TOKENS_PREFIX}${userId}`,
+    );
+    if (tokenHashes.length > 0) {
+      const keys = tokenHashes.flatMap((h) => [
+        `${REFRESH_TOKEN_PREFIX}${h}`,
+        `${CONSUMED_TOKENS_PREFIX}${h}`,
+      ]);
+      await this.redisService.delMany(keys);
+    }
+    await this.redisService.del(`${USER_TOKENS_PREFIX}${userId}`);
   }
 
   /**
@@ -231,35 +301,14 @@ export class AuthService {
   private getAccessTokenRemainingTtl(accessToken: string): number {
     try {
       const payload = this.jwtService.verify<JwtPayload>(accessToken, {
-        secret: this.configService.get<string>('JWT_SECRET', 'dev-jwt-secret-change-in-production'),
-        issuer: this.configService.get<string>('JWT_ISSUER', 'rag-embedding'),
-        audience: this.configService.get<string>('JWT_AUDIENCE', 'rag-embedding-api'),
+        secret: this.appConfig.jwtSecret,
+        issuer: this.appConfig.jwtIssuer,
+        audience: this.appConfig.jwtAudience,
       });
       const remaining = payload.exp - Math.floor(Date.now() / 1000);
       return remaining > 0 ? remaining : 0;
     } catch {
       return 0;
-    }
-  }
-
-  private parseExpiresInSeconds(expiresIn: string): number {
-    const match = expiresIn.match(/^(\d+)([smhd])$/);
-    if (!match) return 7 * 24 * 60 * 60; // default 7d in seconds
-
-    const value = parseInt(match[1]!, 10);
-    const unit = match[2]!;
-
-    switch (unit) {
-      case 's':
-        return value;
-      case 'm':
-        return value * 60;
-      case 'h':
-        return value * 60 * 60;
-      case 'd':
-        return value * 24 * 60 * 60;
-      default:
-        return 7 * 24 * 60 * 60;
     }
   }
 }

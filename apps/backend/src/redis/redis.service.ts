@@ -1,4 +1,9 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { CustomLogger } from '@repo/shared-backend';
 import Redis from 'ioredis';
 
@@ -72,23 +77,41 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.client !== null;
   }
 
+  /**
+   * Returns the Redis client, or throws when Redis is unavailable in
+   * non-test environments.  In test mode the caller is responsible for
+   * handling a null return (graceful degradation).
+   */
+  private getClientOrThrow(): Redis | null {
+    if (!this.client) {
+      if (this.config.isTest) return null;
+      throw new ServiceUnavailableException(
+        'Redis service is unavailable — authentication operations cannot proceed safely',
+      );
+    }
+    return this.client;
+  }
+
   async exists(key: string): Promise<boolean> {
-    if (!this.client) return false;
-    const result = await this.client.exists(key);
+    const client = this.getClientOrThrow();
+    if (!client) return false;
+    const result = await client.exists(key);
     return result === 1;
   }
 
   async get(key: string): Promise<string | null> {
-    if (!this.client) return null;
-    return this.client.get(key);
+    const client = this.getClientOrThrow();
+    if (!client) return null;
+    return client.get(key);
   }
 
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
-    if (!this.client) return;
+    const client = this.getClientOrThrow();
+    if (!client) return;
     if (ttlSeconds !== undefined) {
-      await this.client.set(key, value, 'EX', ttlSeconds);
+      await client.set(key, value, 'EX', ttlSeconds);
     } else {
-      await this.client.set(key, value);
+      await client.set(key, value);
     }
   }
 
@@ -96,18 +119,21 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Set a key with an absolute TTL (in seconds). No-op when Redis is unavailable.
    */
   async setex(key: string, ttlSeconds: number, value: string): Promise<void> {
-    if (!this.client) return;
-    await this.client.setex(key, ttlSeconds, value);
+    const client = this.getClientOrThrow();
+    if (!client) return;
+    await client.setex(key, ttlSeconds, value);
   }
 
   async del(key: string): Promise<number> {
-    if (!this.client) return 0;
-    return this.client.del(key);
+    const client = this.getClientOrThrow();
+    if (!client) return 0;
+    return client.del(key);
   }
 
   async delMany(keys: string[]): Promise<number> {
-    if (!this.client || keys.length === 0) return 0;
-    return this.client.del(...keys);
+    const client = this.getClientOrThrow();
+    if (!client || keys.length === 0) return 0;
+    return client.del(...keys);
   }
 
   async ping(): Promise<string> {
@@ -115,35 +141,51 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async incr(key: string): Promise<number> {
-    if (!this.client) return 0;
-    return this.client.incr(key);
+    const client = this.getClientOrThrow();
+    if (!client) return 0;
+    return client.incr(key);
   }
 
   async decr(key: string): Promise<number> {
-    if (!this.client) return 0;
-    return this.client.decr(key);
+    const client = this.getClientOrThrow();
+    if (!client) return 0;
+    return client.decr(key);
   }
 
   async expire(key: string, ttlSeconds: number): Promise<void> {
-    if (!this.client) return;
-    await this.client.expire(key, ttlSeconds);
+    const client = this.getClientOrThrow();
+    if (!client) return;
+    await client.expire(key, ttlSeconds);
   }
 
   // ---- Set operations (used for tracking user refresh tokens) ----
 
   async sadd(key: string, ...members: string[]): Promise<number> {
-    if (!this.client) return 0;
-    return this.client.sadd(key, ...members);
+    const client = this.getClientOrThrow();
+    if (!client) return 0;
+    return client.sadd(key, ...members);
   }
 
   async srem(key: string, ...members: string[]): Promise<number> {
-    if (!this.client) return 0;
-    return this.client.srem(key, ...members);
+    const client = this.getClientOrThrow();
+    if (!client) return 0;
+    return client.srem(key, ...members);
   }
 
   async smembers(key: string): Promise<string[]> {
-    if (!this.client) return [];
-    return this.client.smembers(key);
+    const client = this.getClientOrThrow();
+    if (!client) return [];
+    return client.smembers(key);
+  }
+
+  /**
+   * Returns the remaining TTL (in seconds) of a key.
+   * -2 = key does not exist, -1 = key exists but has no expiry, >0 = seconds remaining.
+   */
+  async ttl(key: string): Promise<number> {
+    const client = this.getClientOrThrow();
+    if (!client) return -2;
+    return client.ttl(key);
   }
 
   private async waitUntilReady() {

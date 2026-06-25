@@ -28,7 +28,7 @@ const defaultPreferences: Preferences = {
     layout: 'sidebar-nav',
     locale: 'zh-CN',
     loginExpiredMode: 'page',
-    name: 'Vben Admin',
+    name: 'RAG 知识库 Admin',
     preferencesButtonPosition: 'auto',
     timezone: 'Asia/Shanghai',
     watermark: false,
@@ -67,7 +67,7 @@ const defaultPreferences: Preferences = {
   logo: {
     enable: true,
     fit: 'contain',
-    source: 'https://unpkg.com/@vbenjs/static-source@0.1.7/source/logo-v1.webp',
+    source: '/rag-knowledge-logo.svg',
   },
   navigation: {
     accordion: true,
@@ -120,7 +120,7 @@ const defaultPreferences: Preferences = {
     colorPrimary: 'hsl(212 100% 45%)',
     colorSuccess: 'hsl(144 57% 58%)',
     colorWarning: 'hsl(42 84% 61%)',
-    mode: 'dark',
+    mode: 'light',
     radius: '0.5',
     fontSize: 16,
     semiDarkHeader: false,

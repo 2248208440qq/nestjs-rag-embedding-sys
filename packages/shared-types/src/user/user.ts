@@ -16,9 +16,6 @@ export interface JwtPayload {
   sub: string;
   username: string;
   roles: string[];
-  realName: string | null;
-  homePath?: string;
-  avatar?: string;
   iat: number;
   exp: number;
 }

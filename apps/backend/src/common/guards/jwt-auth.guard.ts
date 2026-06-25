@@ -1,11 +1,11 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { createHash } from 'crypto';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import type { UserInfo, JwtPayload } from '@repo/shared-types';
+import { AppConfigService } from '../../config/app-config.service';
 import { RedisService } from '../../redis/redis.service';
+import { hashToken } from '../utils/token.util';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 /**
@@ -15,12 +15,20 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
  */
 const ACCESS_TOKEN_BLACKLIST_PREFIX = 'auth:blacklist:';
 
+/**
+ * Prefix for cached user-status keys in Redis.
+ * Value is `active` or `inactive`.  Set by AuthService on login/refresh
+ * with a short TTL so that admin-initiated status changes propagate
+ * within the access-token lifetime without a DB query per request.
+ */
+const USER_STATUS_PREFIX = 'auth:user_status:';
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private reflector: Reflector,
-    private configService: ConfigService,
+    private appConfig: AppConfigService,
     private redisService: RedisService,
   ) {}
 
@@ -46,41 +54,54 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Token has been revoked');
     }
 
+    let payload: JwtPayload;
     try {
-      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
-        secret: this.configService.get<string>('JWT_SECRET', 'dev-jwt-secret-change-in-production'),
-        issuer: this.configService.get<string>('JWT_ISSUER', 'rag-embedding'),
-        audience: this.configService.get<string>('JWT_AUDIENCE', 'rag-embedding-api'),
+      payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
+        secret: this.appConfig.jwtSecret,
+        issuer: this.appConfig.jwtIssuer,
+        audience: this.appConfig.jwtAudience,
       });
-
-      // Map JwtPayload to UserInfo — all fields come from the signed payload
-      const userInfo: UserInfo = {
-        id: payload.sub,
-        username: payload.username,
-        roles: payload.roles,
-        realName: payload.realName ?? null,
-        homePath: payload.homePath,
-        avatar: payload.avatar,
-      };
-      request.user = userInfo;
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
+
+    // Check cached user status — if admin disabled the user, reject even
+    // though the JWT itself has not expired yet.
+    if (await this.isUserDisabled(payload.sub)) {
+      throw new UnauthorizedException('User has been disabled');
+    }
+
+    // Map JwtPayload to UserInfo.  Only essential fields are in the JWT;
+    // realName / homePath / avatar are fetched via GET /user/info.
+    const userInfo: UserInfo = {
+      id: payload.sub,
+      username: payload.username,
+      roles: payload.roles,
+      realName: null,
+    };
+    request.user = userInfo;
 
     return true;
   }
 
   /**
    * Checks whether the given access token has been blacklisted in Redis.
-   * Returns false when Redis is unavailable (e.g. in test mode).
+   * Throws when Redis is unavailable in production (fail-safe).
    */
   private async isTokenBlacklisted(token: string): Promise<boolean> {
-    const tokenHash = this.hashToken(token);
+    const tokenHash = hashToken(token);
     return this.redisService.exists(`${ACCESS_TOKEN_BLACKLIST_PREFIX}${tokenHash}`);
   }
 
-  private hashToken(token: string): string {
-    return createHash('sha256').update(token).digest('hex');
+  /**
+   * Checks the Redis-cached user status.  If the cache entry says
+   * `inactive` the user is disabled.  If there is no cache entry the
+   * user is assumed active (the JWT was valid at issue time and the
+   * short access-token TTL provides eventual consistency).
+   */
+  private async isUserDisabled(userId: string): Promise<boolean> {
+    const status = await this.redisService.get(`${USER_STATUS_PREFIX}${userId}`);
+    return status === 'inactive';
   }
 
   private extractTokenFromHeader(request: {
@@ -91,4 +112,4 @@ export class JwtAuthGuard implements CanActivate {
   }
 }
 
-export { ACCESS_TOKEN_BLACKLIST_PREFIX };
+export { ACCESS_TOKEN_BLACKLIST_PREFIX, USER_STATUS_PREFIX };

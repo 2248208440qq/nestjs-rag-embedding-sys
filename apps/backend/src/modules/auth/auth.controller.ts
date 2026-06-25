@@ -11,6 +11,7 @@ import {
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { LoginDto } from '@repo/shared-backend';
+import { AppConfigService } from '../../config/app-config.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
@@ -19,7 +20,10 @@ import type { UserInfo } from '@repo/shared-types';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly appConfig: AppConfigService,
+  ) {}
 
   @Public()
   @Post('login')
@@ -37,9 +41,9 @@ export class AuthController {
     // Set refresh token as HttpOnly cookie
     response.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      secure: this.appConfig.isProduction,
+      sameSite: this.appConfig.isProduction ? 'lax' : 'strict',
+      maxAge: this.appConfig.parseExpiresInMs(this.appConfig.jwtRefreshExpiresIn),
       path: '/api/auth',
     });
 
@@ -84,9 +88,9 @@ export class AuthController {
     // Set new refresh token cookie
     response.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: this.appConfig.isProduction,
+      sameSite: this.appConfig.isProduction ? 'lax' : 'strict',
+      maxAge: this.appConfig.parseExpiresInMs(this.appConfig.jwtRefreshExpiresIn),
       path: '/api/auth',
     });
 

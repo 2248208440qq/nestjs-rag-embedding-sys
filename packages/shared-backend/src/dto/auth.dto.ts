@@ -2,7 +2,6 @@ import { PartialType } from '@nestjs/mapped-types';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
-  IsBoolean,
   IsEnum,
   IsOptional,
   IsString,
@@ -20,11 +19,6 @@ export class LoginDto {
   @IsString()
   @MinLength(6)
   password!: string;
-
-  @ApiPropertyOptional({ example: true })
-  @IsOptional()
-  @IsBoolean()
-  captcha?: boolean;
 }
 
 export class CreateRoleDto {

@@ -68,10 +68,6 @@ export class AppConfigService {
     return this.configService.getOrThrow<string>('JWT_SECRET');
   }
 
-  get jwtRefreshSecret() {
-    return this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
-  }
-
   get jwtAccessExpiresIn() {
     return this.configService.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN');
   }
@@ -86,5 +82,37 @@ export class AppConfigService {
 
   get jwtAudience() {
     return this.configService.getOrThrow<string>('JWT_AUDIENCE');
+  }
+
+  /**
+   * Parse a duration string like "15m", "7d", "2h" into seconds.
+   * Returns 7 days in seconds as the default fallback.
+   */
+  parseExpiresInSeconds(expiresIn: string): number {
+    const match = expiresIn.match(/^(\d+)([smhd])$/);
+    if (!match) return 7 * 24 * 60 * 60;
+
+    const value = parseInt(match[1]!, 10);
+    const unit = match[2]!;
+
+    switch (unit) {
+      case 's':
+        return value;
+      case 'm':
+        return value * 60;
+      case 'h':
+        return value * 60 * 60;
+      case 'd':
+        return value * 24 * 60 * 60;
+      default:
+        return 7 * 24 * 60 * 60;
+    }
+  }
+
+  /**
+   * Parse a duration string into milliseconds (for cookie maxAge).
+   */
+  parseExpiresInMs(expiresIn: string): number {
+    return this.parseExpiresInSeconds(expiresIn) * 1000;
   }
 }

@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "dev": "turbo run dev",
-    "dev:frontend": "pnpm --dir apps/frontend --filter @vben/web-ele dev",
+    "dev:frontend": "pnpm --dir apps/frontend --filter @vben/admin dev",
     "dev:backend": "turbo run dev --filter=backend",
     "build": "turbo run build",
     "test": "turbo run test",

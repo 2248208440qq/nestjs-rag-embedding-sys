@@ -2,7 +2,7 @@
 
 ## Directory Responsibilities
 
-- `apps/frontend`: Vue 3 browser application (Vben Admin + Element Plus). Keep pages, routes, stores, API clients, and app-level composition here. The frontend is a separate pnpm workspace with its own package structure under `apps/frontend/packages` and `apps/frontend/apps/web-ele`.
+- `apps/frontend`: Vue 3 browser application (Vben Admin + Element Plus). Keep pages, routes, stores, API clients, and app-level composition here. The frontend is a separate pnpm workspace with its own package structure under `apps/frontend/packages` and `apps/frontend/apps/admin`.
 - `apps/backend`: NestJS server application. Keep runtime backend wiring, `src/common` cross-cutting HTTP concerns, `src/config` typed environment access, `src/modules` business API modules, `src/prisma` database integration, `src/redis` cache integration, tests, and application bootstrap code here.
 - `packages/shared-types`: Serializable TypeScript contracts shared by frontend and backend. Avoid framework imports here. Contains common response/error types, document, file, pagination, and search type definitions.
 - `packages/shared-backend`: Backend-only shared code such as DTOs, mapped types, decorators, server helpers, custom logger, request context, and ID generation. Do not import this package from the frontend.
@@ -31,8 +31,10 @@
 - Use Vue 3 Composition API with `<script setup lang="ts">`.
 - Use Pinia setup stores for non-trivial state.
 - Use Vue Router for screen-level navigation.
-- Use fetch-based API client under `apps/frontend/apps/web-ele/src/api/rag/http.ts` for RAG backend requests.
-- Use Element Plus for rich app controls and `@repo/shared-ui` for reusable RAG-specific primitives.
+- Use fetch-based API client under `apps/frontend/apps/admin/src/api/rag/http.ts` for RAG backend requests.
+- Prefer Vben Admin components and adapters from `@vben/common-ui`, `#/adapter/form`, and `#/adapter/vxe-table`; use Element Plus directly only when Vben does not provide an equivalent wrapper or low-level integration is required.
+- Use the vue-vben-admin documentation on demand for component and layout patterns: https://deepwiki.com/vbenjs/vue-vben-admin
+- Use `@repo/shared-ui` for reusable RAG-specific primitives.
 - Keep API response/request contracts aligned with `@repo/shared-types`.
 - The frontend RAG API client uses `code: 0` to determine success responses (aligned with backend `ResponseInterceptor`).
 
