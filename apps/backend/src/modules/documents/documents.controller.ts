@@ -13,17 +13,20 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { createReadStream } from 'node:fs';
 import type { Response } from 'express';
 
 import type { CreateIndexJobResponse } from '@repo/shared-types';
 
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { DocumentsService } from './documents.service';
+import { FilesService } from '../files/files.service';
 
 @Controller('documents')
 export class DocumentsController {
-  constructor(private readonly documentsService: DocumentsService) {}
+  constructor(
+    private readonly documentsService: DocumentsService,
+    private readonly filesService: FilesService,
+  ) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -54,15 +57,7 @@ export class DocumentsController {
     @Res() response: Response,
   ) {
     const file = await this.documentsService.getFile(id);
-
-    response.setHeader('Content-Type', file.mimeType);
-    response.setHeader('Content-Length', String(file.size));
-    response.setHeader(
-      'Content-Disposition',
-      `inline; filename*=UTF-8''${encodeURIComponent(file.originalFileName)}`,
-    );
-
-    createReadStream(file.storagePath).pipe(response);
+    this.filesService.streamInline(response, file);
   }
 
   @Post(':id/extract')

@@ -8,6 +8,7 @@ import { ChunkingModule } from '../chunking/chunking.module';
 import { EmbeddingsModule } from '../embeddings/embeddings.module';
 import { ExtractorsModule } from '../extractors/extractors.module';
 import { FilesModule } from '../files/files.module';
+import { DocumentIndexingService } from './document-indexing.service';
 import { IndexJobsController } from './index-jobs.controller';
 import { IndexJobsProcessor } from './index-jobs.processor';
 import { INDEX_JOBS_QUEUE } from './index-jobs.queue';
@@ -37,7 +38,7 @@ import { IndexJobsService } from './index-jobs.service';
     BullModule.registerQueue({ name: INDEX_JOBS_QUEUE }),
   ],
   controllers: [IndexJobsController],
-  providers: [IndexJobsProcessor, IndexJobsService],
+  providers: [DocumentIndexingService, IndexJobsProcessor, IndexJobsService],
   exports: [IndexJobsService],
 })
 export class IndexJobsModule {}

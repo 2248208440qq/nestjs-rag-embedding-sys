@@ -8,7 +8,7 @@ type IndexJobEntity = {
   queueJobId: string | null;
   cancelRequestedAt: Date | null;
   document?: { title: string } | null;
-  type: IndexJob['type'] | 'chunk_document' | 'generate_embeddings';
+  type: IndexJob['type'];
   status: IndexJob['status'];
   progress: number;
   currentStep: string | null;
@@ -30,7 +30,7 @@ export function toIndexJob(job: IndexJobEntity): IndexJob {
     queueJobId: job.queueJobId ?? undefined,
     cancelRequestedAt: job.cancelRequestedAt?.toISOString(),
     documentTitle: job.document?.title,
-    type: job.type as IndexJob['type'],
+    type: job.type,
     status: job.status,
     progress: job.progress,
     currentStep: job.currentStep ?? undefined,
