@@ -1,40 +1,28 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
-import { AppConfigModule } from '../../config/config.module';
-import { AppConfigService } from '../../config/app-config.service';
-import { PrismaModule } from '../../prisma/prisma.module';
-import { ChunkingModule } from '../chunking/chunking.module';
-import { EmbeddingsModule } from '../embeddings/embeddings.module';
-import { ExtractorsModule } from '../extractors/extractors.module';
-import { FilesModule } from '../files/files.module';
-import { DocumentIndexingService } from './document-indexing.service';
-import { IndexJobsController } from './index-jobs.controller';
-import { IndexJobsProcessor } from './index-jobs.processor';
-import { INDEX_JOBS_QUEUE } from './index-jobs.queue';
-import { IndexJobsService } from './index-jobs.service';
+import { INDEX_JOBS_QUEUE } from '@/common/constants';
+import { AppConfigModule } from '@/config/config.module';
+import { PrismaModule } from '@/prisma/prisma.module';
+import { QueueModule } from '@/queue/queue.module';
+import { ChunkingModule } from '@/modules/chunking/chunking.module';
+import { EmbeddingsModule } from '@/modules/embeddings/embeddings.module';
+import { ExtractorsModule } from '@/modules/extractors/extractors.module';
+import { FilesModule } from '@/modules/files/files.module';
+import { DocumentIndexingService } from '@/modules/index-jobs/document-indexing.service';
+import { IndexJobsController } from '@/modules/index-jobs/index-jobs.controller';
+import { IndexJobsProcessor } from '@/modules/index-jobs/index-jobs.processor';
+import { IndexJobsService } from '@/modules/index-jobs/index-jobs.service';
 
 @Module({
   imports: [
     AppConfigModule,
     PrismaModule,
+    QueueModule,
     ChunkingModule,
     EmbeddingsModule,
     ExtractorsModule,
     FilesModule,
-    BullModule.forRootAsync({
-      imports: [AppConfigModule],
-      inject: [AppConfigService],
-      useFactory: (config: AppConfigService) => ({
-        connection: {
-          db: config.redisDb,
-          host: config.redisHost,
-          password: config.redisPassword,
-          port: config.redisPort,
-          username: config.redisUsername,
-        },
-      }),
-    }),
     BullModule.registerQueue({ name: INDEX_JOBS_QUEUE }),
   ],
   controllers: [IndexJobsController],

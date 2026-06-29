@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
 
-import { AppConfigService } from '../../config/app-config.service';
+import { AppConfigService } from '@/config/app-config.service';
 
 @Injectable()
 export class DeepSeekLlmService {

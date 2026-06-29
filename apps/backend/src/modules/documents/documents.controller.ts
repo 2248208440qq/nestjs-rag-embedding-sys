@@ -17,9 +17,9 @@ import type { Response } from 'express';
 
 import type { CreateIndexJobResponse } from '@repo/shared-types';
 
-import { CreateDocumentDto } from './dto/create-document.dto';
-import { DocumentsService } from './documents.service';
-import { FilesService } from '../files/files.service';
+import { CreateDocumentDto } from '@/modules/documents/dto/create-document.dto';
+import { DocumentsService } from '@/modules/documents/documents.service';
+import { FilesService } from '@/modules/files/files.service';
 
 @Controller('documents')
 export class DocumentsController {

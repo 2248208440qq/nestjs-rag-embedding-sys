@@ -3,9 +3,9 @@ import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { Prisma } from '@prisma/client';
 import type { QaCitation, QaResponse, SearchResult } from '@repo/shared-types';
 
-import { PrismaService } from '../../prisma/prisma.service';
-import { SearchService } from '../search/search.service';
-import { DeepSeekLlmService } from './deepseek-llm.service';
+import { PrismaService } from '@/prisma/prisma.service';
+import { SearchService } from '@/modules/search/search.service';
+import { DeepSeekLlmService } from '@/modules/agents/deepseek-llm.service';
 
 interface LegalQaGraphInput {
   knowledgeBaseIds?: string[];

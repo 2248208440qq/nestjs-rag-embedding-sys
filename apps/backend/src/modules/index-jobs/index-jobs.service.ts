@@ -15,16 +15,10 @@ import type {
 import { Prisma } from '@prisma/client';
 import type { Queue } from 'bullmq';
 
-import { PrismaService } from '../../prisma/prisma.service';
-import { INDEX_JOBS_QUEUE, type IndexJobQueuePayload } from './index-jobs.queue';
-import { toIndexJob } from './index-jobs.mapper';
-
-const EXECUTABLE_TYPES: IndexJobType[] = [
-  'delete_document_index',
-  'parse_document',
-  'rebuild_all_indexes',
-  'rebuild_document_index',
-];
+import { EXECUTABLE_INDEX_JOB_TYPES, INDEX_JOBS_QUEUE } from '@/common/constants';
+import { PrismaService } from '@/prisma/prisma.service';
+import type { IndexJobQueuePayload } from '@/modules/index-jobs/index-jobs.queue';
+import { toIndexJob } from '@/modules/index-jobs/index-jobs.mapper';
 
 interface CreateJobInput {
   attemptOfJobId?: string;
@@ -54,7 +48,7 @@ export class IndexJobsService implements OnApplicationBootstrap {
     const recoverable = await this.prisma.indexJob.findMany({
       where: {
         status: { in: ['pending', 'running'] },
-        type: { in: EXECUTABLE_TYPES },
+        type: { in: EXECUTABLE_INDEX_JOB_TYPES },
       },
       include: { document: { select: { title: true } } },
     });
@@ -122,7 +116,7 @@ export class IndexJobsService implements OnApplicationBootstrap {
     if (previous.status !== 'failed') {
       throw new ConflictException('Only failed jobs can be retried');
     }
-    if (!EXECUTABLE_TYPES.includes(previous.type)) {
+    if (!EXECUTABLE_INDEX_JOB_TYPES.includes(previous.type)) {
       throw new ConflictException(`Task type ${previous.type} is no longer executable`);
     }
     const job = await this.createJob({

@@ -49,6 +49,8 @@ This file describes how coding agents should work in this repository. Keep it al
 - Use `PrismaService` for database access and `RedisService` for Redis access. Do not create ad hoc Prisma or Redis clients in feature modules.
 - Use `CustomLogger` from `@repo/shared-backend` for runtime logging. Avoid raw `console.*` in application code.
 - Keep request IDs, response wrapping, exception filters and request logging in `src/common`.
+- Keep backend constants in `src/common/constants/<module>.constants.ts` and export them through `src/common/constants/index.ts`.
+- Use the backend `@/` path alias for imports under `apps/backend/src`; avoid `../` and `../../` imports in backend source files.
 - Backend uses the global prefix `/api`; Swagger is served at `/docs`.
 - Public response/request contracts should align with `@repo/shared-types`; do not expose Prisma models directly as API contracts.
 
@@ -120,4 +122,3 @@ Rules:
 - Keep dependency additions scoped to the package that uses them.
 - Do not move code across ownership boundaries just to reduce imports.
 - Update `readme.md`, `AGENTS.md`, `AGENTS-CH.md` or package READMEs when adding commands, runtime services, modules or workflows.
-

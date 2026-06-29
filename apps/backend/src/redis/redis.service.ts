@@ -7,7 +7,7 @@ import {
 import { CustomLogger } from '@repo/shared-backend';
 import Redis from 'ioredis';
 
-import { AppConfigService } from '../config/app-config.service';
+import { AppConfigService } from '@/config/app-config.service';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {

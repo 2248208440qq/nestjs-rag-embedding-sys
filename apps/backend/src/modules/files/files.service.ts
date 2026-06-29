@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 import type { UploadFileResponse } from '@repo/shared-types';
 import type { Response } from 'express';
 
-import { decodeUploadFileName } from './file-name.util';
+import { decodeUploadFileName } from '@/modules/files/file-name.util';
 
 @Injectable()
 export class FilesService {

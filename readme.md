@@ -163,6 +163,7 @@ Do not use `npx prisma db seed`; this project uses `pnpm prisma:seed`.
 - Shared serializable contracts belong in `packages/shared-types`.
 - Backend-only helpers belong in `packages/shared-backend`.
 - Reusable Vue RAG UI belongs in `packages/shared-ui`.
+- Backend constants live under `apps/backend/src/common/constants` and are exported from `src/common/constants/index.ts`.
+- Backend source imports use the `@/` alias for paths under `apps/backend/src`.
 - Do not commit `.env`, uploads, logs, coverage, build output, or real API keys.
 - When API contracts change, update backend DTO/Swagger, shared types, frontend API calls, and API smoke tests together.
-

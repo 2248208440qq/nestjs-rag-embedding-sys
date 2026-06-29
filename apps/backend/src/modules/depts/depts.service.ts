@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { DeptStatus } from '@prisma/client';
 import type { DeptRecord } from '@repo/shared-types';
-import { DeptsRepository } from './depts.repository';
+import { DeptsRepository } from '@/modules/depts/depts.repository';
 
 @Injectable()
 export class DeptsService {

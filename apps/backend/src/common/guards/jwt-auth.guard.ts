@@ -3,25 +3,14 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import type { UserInfo, JwtPayload } from '@repo/shared-types';
-import { AppConfigService } from '../../config/app-config.service';
-import { RedisService } from '../../redis/redis.service';
-import { hashToken } from '../utils/token.util';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-
-/**
- * Prefix for access-token blacklist keys in Redis.
- * When a user logs out, their access token is blacklisted with a TTL
- * equal to the token's remaining lifetime.
- */
-const ACCESS_TOKEN_BLACKLIST_PREFIX = 'auth:blacklist:';
-
-/**
- * Prefix for cached user-status keys in Redis.
- * Value is `active` or `inactive`.  Set by AuthService on login/refresh
- * with a short TTL so that admin-initiated status changes propagate
- * within the access-token lifetime without a DB query per request.
- */
-const USER_STATUS_PREFIX = 'auth:user_status:';
+import {
+  ACCESS_TOKEN_BLACKLIST_PREFIX,
+  IS_PUBLIC_KEY,
+  USER_STATUS_PREFIX,
+} from '@/common/constants';
+import { AppConfigService } from '@/config/app-config.service';
+import { RedisService } from '@/redis/redis.service';
+import { hashToken } from '@/common/utils/token.util';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -111,5 +100,3 @@ export class JwtAuthGuard implements CanActivate {
     return type === 'Bearer' ? token : undefined;
   }
 }
-
-export { ACCESS_TOKEN_BLACKLIST_PREFIX, USER_STATUS_PREFIX };

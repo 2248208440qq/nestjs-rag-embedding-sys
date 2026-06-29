@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { RoleStatus } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import type { CreateRoleDto, UpdateRoleDto } from '@repo/shared-backend';
 
 @Injectable()

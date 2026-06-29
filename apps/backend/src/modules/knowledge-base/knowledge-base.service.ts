@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import {
   BindKnowledgeBaseDocumentsDto,
   CreateKnowledgeBaseDto,
   UpdateKnowledgeBaseDto,
-} from './dto/knowledge-base.dto';
-import { toKnowledgeBase } from './knowledge-base.mapper';
+} from '@/modules/knowledge-base/dto/knowledge-base.dto';
+import { toKnowledgeBase } from '@/modules/knowledge-base/knowledge-base.mapper';
 
 @Injectable()
 export class KnowledgeBaseService {

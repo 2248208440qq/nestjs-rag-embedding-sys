@@ -13,8 +13,8 @@ import {
   BindKnowledgeBaseDocumentsDto,
   CreateKnowledgeBaseDto,
   UpdateKnowledgeBaseDto,
-} from './dto/knowledge-base.dto';
-import { KnowledgeBaseService } from './knowledge-base.service';
+} from '@/modules/knowledge-base/dto/knowledge-base.dto';
+import { KnowledgeBaseService } from '@/modules/knowledge-base/knowledge-base.service';
 
 @Controller('knowledge-bases')
 export class KnowledgeBaseController {

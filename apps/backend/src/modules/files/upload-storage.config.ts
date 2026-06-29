@@ -3,9 +3,8 @@ import { extname, join } from 'node:path';
 
 import { diskStorage } from 'multer';
 
-import { decodeUploadFileName, sanitizeOriginalName } from './file-name.util';
-
-const UPLOAD_DIR = 'uploads';
+import { UPLOAD_DIR } from '@/common/constants';
+import { decodeUploadFileName, sanitizeOriginalName } from '@/modules/files/file-name.util';
 
 mkdirSync(UPLOAD_DIR, { recursive: true });
 

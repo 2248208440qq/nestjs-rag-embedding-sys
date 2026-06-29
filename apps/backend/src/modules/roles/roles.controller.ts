@@ -10,8 +10,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { CreateRoleDto, UpdateRoleDto } from '@repo/shared-backend';
-import { Roles as RolesDecorator } from '../../common/decorators/roles.decorator';
-import { RolesService } from './roles.service';
+import { Roles as RolesDecorator } from '@/common/decorators/roles.decorator';
+import { RolesService } from '@/modules/roles/roles.service';
 
 @ApiTags('roles')
 @Controller('system/role')

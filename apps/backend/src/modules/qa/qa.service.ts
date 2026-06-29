@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { QaResponse } from '@repo/shared-types';
 
-import { LegalQaGraphService } from '../agents/legal-qa-graph.service';
-import { QaRequestDto } from './dto/qa.dto';
+import { DEFAULT_QA_TOP_K, MAX_QA_TOP_K } from '@/common/constants';
+import { LegalQaGraphService } from '@/modules/agents/legal-qa-graph.service';
+import { QaRequestDto } from '@/modules/qa/dto/qa.dto';
 
 @Injectable()
 export class QaService {
@@ -17,7 +18,7 @@ export class QaService {
     return this.legalQaGraph.run({
       knowledgeBaseIds: dto.knowledgeBaseIds,
       question,
-      topK: dto.topK ?? 5,
+      topK: Math.min(Math.max(dto.topK ?? DEFAULT_QA_TOP_K, 1), MAX_QA_TOP_K),
     });
   }
 }

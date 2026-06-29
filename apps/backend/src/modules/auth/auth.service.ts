@@ -7,23 +7,18 @@ import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'crypto';
 import type { UserInfo, LoginResult, JwtPayload } from '@repo/shared-types';
 import * as bcrypt from 'bcrypt';
-import { AppConfigService } from '../../config/app-config.service';
-import { AuthRepository } from './auth.repository';
-import { RedisService } from '../../redis/redis.service';
-import { hashToken } from '../../common/utils/token.util';
 import {
   ACCESS_TOKEN_BLACKLIST_PREFIX,
+  CONSUMED_TOKENS_PREFIX,
+  CONSUMED_TTL_BUFFER,
+  REFRESH_TOKEN_PREFIX,
   USER_STATUS_PREFIX,
-} from '../../common/guards/jwt-auth.guard';
-
-/** Redis key prefix for individual refresh tokens: `auth:refresh:{sha256Hash}` → userId */
-const REFRESH_TOKEN_PREFIX = 'auth:refresh:';
-/** Redis key prefix for the set of refresh-token hashes belonging to a user. */
-const USER_TOKENS_PREFIX = 'auth:user_tokens:';
-/** Redis key prefix for consumed (already-rotated) refresh tokens — used for reuse detection. */
-const CONSUMED_TOKENS_PREFIX = 'auth:consumed:';
-/** TTL (seconds) for consumed-token entries — slightly longer than refresh token TTL. */
-const CONSUMED_TTL_BUFFER = 60;
+  USER_TOKENS_PREFIX,
+} from '@/common/constants';
+import { AppConfigService } from '@/config/app-config.service';
+import { RedisService } from '@/redis/redis.service';
+import { hashToken } from '@/common/utils/token.util';
+import { AuthRepository } from '@/modules/auth/auth.repository';
 
 @Injectable()
 export class AuthService {

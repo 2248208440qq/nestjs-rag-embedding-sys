@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 
-import { FilesService } from './files.service';
-import { uploadStorage } from './upload-storage.config';
+import { FilesService } from '@/modules/files/files.service';
+import { uploadStorage } from '@/modules/files/upload-storage.config';
 
 @Module({
   imports: [

@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 
-import { IndexJobsModule } from '../index-jobs/index-jobs.module';
-import { FilesModule } from '../files/files.module';
-import { PrismaModule } from '../../prisma/prisma.module';
-import { DocumentsController } from './documents.controller';
-import { DocumentsService } from './documents.service';
+import { IndexJobsModule } from '@/modules/index-jobs/index-jobs.module';
+import { FilesModule } from '@/modules/files/files.module';
+import { PrismaModule } from '@/prisma/prisma.module';
+import { DocumentsController } from '@/modules/documents/documents.controller';
+import { DocumentsService } from '@/modules/documents/documents.service';
 
 @Module({
   imports: [

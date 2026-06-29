@@ -1,9 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, jest } from '@jest/globals';
 
-import { PrismaService } from '../../prisma/prisma.service';
-import { EmbeddingClientService } from '../embeddings/embedding-client.service';
-import { SearchService } from './search.service';
+import { PrismaService } from '@/prisma/prisma.service';
+import { EmbeddingClientService } from '@/modules/embeddings/embedding-client.service';
+import { SearchService } from '@/modules/search/search.service';
 
 describe('SearchService', () => {
   it('merges vector and keyword candidates into hybrid article results', async () => {
