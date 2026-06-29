@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Post,
@@ -18,6 +19,7 @@ export class IndexJobsController {
   list(@Query() query: IndexJobQueryDto) {
     return this.indexJobsService.list({
       documentId: query.documentId,
+      parentJobId: query.parentJobId,
       page: query.page ? Number(query.page) : undefined,
       pageSize: query.pageSize ? Number(query.pageSize) : undefined,
       status: query.status,
@@ -40,12 +42,8 @@ export class IndexJobsController {
     return this.indexJobsService.cancel(id);
   }
 
-  @Post('documents/:documentId/rebuild')
-  rebuildDocument(@Param('documentId', ParseUUIDPipe) documentId: string) {
-    return this.indexJobsService.createRebuildDocumentJob(documentId);
-  }
-
   @Post('rebuild-all')
+  @HttpCode(202)
   rebuildAll() {
     return this.indexJobsService.createRebuildAllJob();
   }

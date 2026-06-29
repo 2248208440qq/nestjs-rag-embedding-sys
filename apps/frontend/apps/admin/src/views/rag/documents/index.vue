@@ -37,6 +37,7 @@ import {
   uploadDocument,
 } from '#/api/rag';
 import { RAG_PERMISSIONS } from '#/constants/permissions';
+import { useIndexJobMonitor } from '#/composables/rag/use-index-job-monitor';
 
 const router = useRouter();
 const { hasAccessByCodes } = useAccess();
@@ -49,6 +50,7 @@ const fileList = ref<UploadUserFile[]>([]);
 const uploadRef = ref<UploadInstance>();
 const actionLoadingId = ref('');
 const actionLoadingType = ref<'delete' | 'extract' | 'index'>();
+const { watch: watchJob } = useIndexJobMonitor();
 const uploadForm = reactive({
   sourceType: '' as '' | KnowledgeDocumentSourceType,
   title: '',
@@ -85,7 +87,9 @@ const sourceTypeLabels: Record<KnowledgeDocumentSourceType, string> = {
 const statusLabels: Record<string, string> = {
   failed: '失败',
   indexed: '已索引',
+  indexing: '索引中',
   parsed: '已解析',
+  parsing: '解析中',
   uploaded: '已上传',
 };
 
@@ -171,16 +175,18 @@ async function runAction(
 
 async function handleExtract(document: KnowledgeDocument) {
   await runAction(document, 'extract', async () => {
-    await extractDocument(document.id);
-    ElMessage.success('解析任务已完成');
+    const response = await extractDocument(document.id);
+    ElMessage.success('解析任务已创建');
+    void watchJob(response.job.id, () => loadDocuments());
     await loadDocuments();
   });
 }
 
 async function handleIndex(document: KnowledgeDocument) {
   await runAction(document, 'index', async () => {
-    await indexDocument(document.id);
-    ElMessage.success(document.status === 'indexed' ? '索引更新已完成' : '索引构建已完成');
+    const response = await indexDocument(document.id);
+    ElMessage.success(document.status === 'indexed' ? '更新索引任务已创建' : '创建索引任务已创建');
+    void watchJob(response.job.id, () => loadDocuments());
     await loadDocuments();
   });
 }
@@ -192,8 +198,9 @@ async function handleDelete(document: KnowledgeDocument) {
     { type: 'warning' },
   );
   await runAction(document, 'delete', async () => {
-    await deleteDocument(document.id);
-    ElMessage.success('文档、索引和本地文件已删除');
+    const response = await deleteDocument(document.id);
+    ElMessage.success('删除任务已创建');
+    void watchJob(response.job.id, () => loadDocuments());
     await loadDocuments();
   });
 }

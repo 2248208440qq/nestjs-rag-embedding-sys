@@ -25,6 +25,7 @@ import {
   indexDocument,
 } from '#/api/rag';
 import { RAG_PERMISSIONS } from '#/constants/permissions';
+import { useIndexJobMonitor } from '#/composables/rag/use-index-job-monitor';
 
 import FilePreviewDialog from './components/FilePreviewDialog.vue';
 
@@ -35,6 +36,7 @@ const document = ref<KnowledgeDocument>();
 const loading = ref(false);
 const actionLoading = ref(false);
 const previewVisible = ref(false);
+const { job: activeJob, monitoring, watch: watchJob } = useIndexJobMonitor();
 
 const canIndex = computed(
   () => document.value?.status === 'parsed' || document.value?.status === 'indexed',
@@ -64,7 +66,9 @@ const sourceTypeLabels = {
 const statusLabels: Record<string, string> = {
   failed: '失败',
   indexed: '已索引',
+  indexing: '索引中',
   parsed: '已解析',
+  parsing: '解析中',
   uploaded: '已上传',
 };
 
@@ -81,8 +85,9 @@ async function handleExtract() {
   if (!document.value || actionLoading.value) return;
   actionLoading.value = true;
   try {
-    await extractDocument(document.value.id);
-    ElMessage.success('解析任务已完成');
+    const response = await extractDocument(document.value.id);
+    ElMessage.success('解析任务已创建');
+    void watchJob(response.job.id, () => loadDocument());
     await loadDocument();
   } finally {
     actionLoading.value = false;
@@ -93,10 +98,9 @@ async function handleIndex() {
   if (!document.value || actionLoading.value) return;
   actionLoading.value = true;
   try {
-    await indexDocument(document.value.id);
-    ElMessage.success(
-      document.value.status === 'indexed' ? '索引更新已完成' : '索引构建已完成',
-    );
+    const response = await indexDocument(document.value.id);
+    ElMessage.success(document.value.status === 'indexed' ? '更新索引任务已创建' : '创建索引任务已创建');
+    void watchJob(response.job.id, () => loadDocument());
     await loadDocument();
   } finally {
     actionLoading.value = false;
@@ -114,9 +118,11 @@ async function handleDelete() {
 
   actionLoading.value = true;
   try {
-    await deleteDocument(document.value.id);
-    ElMessage.success('文档、索引和本地文件已删除');
-    router.push('/rag/documents');
+    const response = await deleteDocument(document.value.id);
+    ElMessage.success('删除任务已创建');
+    void watchJob(response.job.id, (job) => {
+      if (job.status === 'succeeded') router.push('/rag/documents');
+    });
   } finally {
     actionLoading.value = false;
   }
@@ -212,6 +218,19 @@ onMounted(loadDocument);
             {{ formatDate(document.updatedAt) }}
           </VbenDescriptionsItem>
         </VbenDescriptions>
+
+        <div v-if="monitoring && activeJob" class="mt-4 border border-border px-4 py-3">
+          <div class="flex items-center justify-between text-sm">
+            <span class="font-medium">{{ activeJob.currentStep || '任务执行中' }}</span>
+            <span class="text-muted-foreground">{{ activeJob.progress }}%</span>
+          </div>
+          <div class="mt-2 h-2 overflow-hidden bg-muted">
+            <div class="h-full bg-primary transition-all" :style="{ width: `${activeJob.progress}%` }" />
+          </div>
+          <p v-if="activeJob.errorMessage" class="mt-2 text-xs text-destructive">
+            {{ activeJob.errorMessage }}
+          </p>
+        </div>
 
         <div class="mt-5 flex flex-wrap gap-2">
           <VbenButton

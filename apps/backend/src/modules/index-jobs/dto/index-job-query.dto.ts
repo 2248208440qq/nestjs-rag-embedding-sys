@@ -10,9 +10,7 @@ const JOB_STATUSES: IndexJobStatus[] = [
 ];
 
 const JOB_TYPES: IndexJobType[] = [
-  'chunk_document',
   'delete_document_index',
-  'generate_embeddings',
   'parse_document',
   'rebuild_all_indexes',
   'rebuild_document_index',
@@ -22,6 +20,10 @@ export class IndexJobQueryDto {
   @IsOptional()
   @IsUUID()
   documentId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  parentJobId?: string;
 
   @IsOptional()
   @IsString()

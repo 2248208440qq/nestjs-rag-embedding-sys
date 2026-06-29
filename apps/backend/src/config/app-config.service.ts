@@ -44,6 +44,38 @@ export class AppConfigService {
     return this.configService.getOrThrow<number>('EMBEDDING_BATCH_SIZE');
   }
 
+  get llmEnabled() {
+    return this.configService.getOrThrow<boolean>('LLM_ENABLED');
+  }
+
+  get llmProvider() {
+    return this.configService.getOrThrow<'deepseek'>('LLM_PROVIDER');
+  }
+
+  get llmBaseUrl() {
+    return this.configService.getOrThrow<string>('LLM_BASE_URL');
+  }
+
+  get llmModel() {
+    return this.configService.getOrThrow<'deepseek-v4-flash'>('LLM_MODEL');
+  }
+
+  get llmApiKey() {
+    return this.configService.get<string>('LLM_API_KEY') || undefined;
+  }
+
+  get llmTemperature() {
+    return this.configService.getOrThrow<number>('LLM_TEMPERATURE');
+  }
+
+  get llmMaxTokens() {
+    return this.configService.getOrThrow<number>('LLM_MAX_TOKENS');
+  }
+
+  get llmTimeoutMs() {
+    return this.configService.getOrThrow<number>('LLM_TIMEOUT_MS');
+  }
+
   get redisHost() {
     return this.configService.getOrThrow<string>('REDIS_HOST');
   }

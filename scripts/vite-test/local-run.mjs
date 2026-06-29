@@ -7,19 +7,21 @@ const node = process.execPath;
 const apiOrigin = process.env.API_ORIGIN ?? 'http://localhost:3000';
 const baseUrl = process.env.API_BASE_URL ?? `${apiOrigin}/api`;
 const timeoutMs = Number(process.env.API_TEST_TIMEOUT_MS ?? 30_000);
+const runnerArgs = process.argv.slice(2);
 
 let backendProcess;
 
 try {
   await run(pnpm, ['docker:up']);
   await run(pnpm, ['backend:db:push']);
+  await run(pnpm, ['backend:db:seed']);
 
   if (!(await isBackendReady())) {
     backendProcess = startBackend();
   }
 
   await waitForBackend();
-  await run(node, ['scripts/vite-test/run.mjs'], {
+  await run(node, ['scripts/vite-test/run.mjs', ...runnerArgs], {
     env: {
       ...process.env,
       API_BASE_URL: baseUrl,

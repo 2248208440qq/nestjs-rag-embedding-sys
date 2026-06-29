@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 
-import { PrismaModule } from '../../prisma/prisma.module';
-import { SearchModule } from '../search/search.module';
+import { AgentsModule } from '../agents/agents.module';
 import { QaController } from './qa.controller';
 import { QaService } from './qa.service';
 
 @Module({
-  imports: [PrismaModule, SearchModule],
+  imports: [AgentsModule],
   controllers: [QaController],
   providers: [QaService],
 })

@@ -17,6 +17,15 @@ export interface QaRequest {
 export interface QaResponse {
   answer: string;
   citations: QaCitation[];
+  citationValidation?: {
+    passed: boolean;
+    warnings: string[];
+  };
+  fallbackUsed?: boolean;
+  modelInfo?: {
+    model: 'deepseek-v4-flash';
+    provider: 'deepseek';
+  };
   retrievalTraceId?: string;
   sourceChunks: SearchResult[];
 }

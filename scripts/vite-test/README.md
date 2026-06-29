@@ -1,9 +1,11 @@
 # vite-test
 
-Lightweight API and Swagger smoke tests for the local RAG backend.
+Lightweight API smoke and contract tests for the local RAG backend.
 
-The tests are intentionally small and deterministic. They validate public API
-contracts, the unified response wrapper, auth error behavior, and Swagger docs.
+The runner covers public app health, auth, RAG documents/search/index jobs,
+evaluation, knowledge base, QA, RBAC system endpoints, and Swagger docs. It is
+designed to be deterministic and safe to run repeatedly against a local
+development database.
 
 ## Run
 
@@ -19,20 +21,22 @@ Then run all smoke tests:
 pnpm test:api
 ```
 
-Run only API contract tests:
-
-```bash
-pnpm test:api -- --api-only
-```
-
 Run only Swagger document tests:
 
 ```bash
 pnpm test:docs
 ```
 
-For a one-command local check that starts Docker infrastructure and the backend
-when needed:
+Run one module:
+
+```bash
+pnpm test:api -- --module qa
+pnpm test:api -- --module knowledge-base
+pnpm test:api -- --module system
+```
+
+For a one-command local check that starts Docker infrastructure, syncs schema,
+seeds users/roles/menus, and starts the backend when needed:
 
 ```bash
 pnpm test:api:local
@@ -44,50 +48,87 @@ pnpm test:api:local
 pnpm docker:test
 ```
 
+## Modules
+
+Available module filters:
+
+```text
+auth
+app
+documents
+search
+index-jobs
+evaluation
+knowledge-base
+qa
+system
+docs
+```
+
+Cleanup tests always run with a module filter so test documents and knowledge
+bases created during the run are removed.
+
 ## Environment
 
-Defaults target the real local backend:
+Defaults target the local backend directly:
 
 ```bash
 API_ORIGIN=http://localhost:3000
 API_BASE_URL=http://localhost:3000/api
 DOCS_JSON_URL=http://localhost:3000/docs-json
+API_TEST_USERNAME=admin
+API_TEST_PASSWORD=123456789
 ```
 
-Override them when you want to test through the Vite dev proxy:
+Override them when testing through the Vite dev proxy:
 
 ```bash
 API_ORIGIN=http://localhost:5777 pnpm test:api
 ```
 
-## Cases
+DeepSeek tests do not require real API calls by default. To include the live LLM
+structure check:
 
-- `GET /api/` verifies the unified success response wrapper.
-- `GET /api/health` verifies health output is wrapped.
-- `GET /docs-json` verifies Swagger exposes the current RAG/auth routes.
-- `POST /api/auth/login` with Vben extra fields and invalid credentials verifies
-  the backend returns a real `401`, not DTO whitelist errors.
-- `POST /api/auth/logout` without a token verifies the backend returns one
-  explicit `401` contract response.
-- `GET /api/auth/codes` without a token verifies protected APIs reject missing
-  credentials consistently.
+```bash
+RUN_LLM_TESTS=true pnpm test:api -- --module qa
+```
 
-## Writing Tests
+The live test only validates response structure, citations contract, and that no
+secret-like key material is present in the public response.
 
-Add cases to `scripts/vite-test/run.mjs` using this shape:
+## Auth
+
+Document extraction, indexing, and deletion are asynchronous. The runner polls
+their returned task IDs to verify that each operation reaches a terminal state.
+
+Authenticated tests log in once and keep the access token in memory. The default
+credentials are created by `apps/backend/prisma/seed.ts`:
+
+```text
+admin / 123456789
+```
+
+Use `pnpm test:api:local` if a fresh database has not been seeded yet.
+
+## Adding Cases
+
+Add cases to `scripts/vite-test/run.mjs`:
 
 ```js
 {
-  name: 'POST /example',
+  module: 'qa',
+  name: 'POST /qa/ask returns legal QA structure',
   method: 'POST',
-  path: '/example',
-  body: { value: 'demo' },
-  expectStatus: 200,
-  assert: (body) => {
-    expectEqual(body.code, 0, 'code');
+  path: '/qa/ask',
+  auth: true,
+  body: { question: '市场主体应当如何依法经营？', topK: 20 },
+  expectStatus: [200, 201],
+  assert: ({ body }) => {
+    expectSuccess(body, '/api/qa/ask');
+    expectType(body.data?.answer, 'string', 'data.answer');
   },
 }
 ```
 
-Keep tests independent. They should validate public contracts, not internal
-implementation details.
+Cases can read and write shared run context through `ctx`, for example
+`knowledgeBaseId`, `documentId`, `evaluationCaseId`, and `jobId`.

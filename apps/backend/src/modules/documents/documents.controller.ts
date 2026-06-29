@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Post,
@@ -14,6 +15,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createReadStream } from 'node:fs';
 import type { Response } from 'express';
+
+import type { CreateIndexJobResponse } from '@repo/shared-types';
 
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { DocumentsService } from './documents.service';
@@ -63,17 +66,20 @@ export class DocumentsController {
   }
 
   @Post(':id/extract')
-  extract(@Param('id', ParseUUIDPipe) id: string) {
+  @HttpCode(202)
+  extract(@Param('id', ParseUUIDPipe) id: string): Promise<CreateIndexJobResponse> {
     return this.documentsService.extract(id);
   }
 
   @Post(':id/index')
-  index(@Param('id', ParseUUIDPipe) id: string) {
+  @HttpCode(202)
+  index(@Param('id', ParseUUIDPipe) id: string): Promise<CreateIndexJobResponse> {
     return this.documentsService.index(id);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
+  @HttpCode(202)
+  remove(@Param('id', ParseUUIDPipe) id: string): Promise<CreateIndexJobResponse> {
     return this.documentsService.remove(id);
   }
 

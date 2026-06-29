@@ -3,8 +3,12 @@ import type { IndexJob } from '@repo/shared-types';
 type IndexJobEntity = {
   id: string;
   documentId: string | null;
+  parentJobId: string | null;
+  attemptOfJobId: string | null;
+  queueJobId: string | null;
+  cancelRequestedAt: Date | null;
   document?: { title: string } | null;
-  type: IndexJob['type'];
+  type: IndexJob['type'] | 'chunk_document' | 'generate_embeddings';
   status: IndexJob['status'];
   progress: number;
   currentStep: string | null;
@@ -21,8 +25,12 @@ export function toIndexJob(job: IndexJobEntity): IndexJob {
   return {
     id: job.id,
     documentId: job.documentId ?? undefined,
+    parentJobId: job.parentJobId ?? undefined,
+    attemptOfJobId: job.attemptOfJobId ?? undefined,
+    queueJobId: job.queueJobId ?? undefined,
+    cancelRequestedAt: job.cancelRequestedAt?.toISOString(),
     documentTitle: job.document?.title,
-    type: job.type,
+    type: job.type as IndexJob['type'],
     status: job.status,
     progress: job.progress,
     currentStep: job.currentStep ?? undefined,

@@ -1,218 +1,118 @@
 <script lang="ts" setup>
+import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { IndexJob, IndexJobStatus, IndexJobType } from '#/api/rag';
 
-import { computed, onMounted, reactive, ref, shallowRef } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 
-import { Page, VbenButton } from '@vben/common-ui';
+import { Page, VbenButton, VbenSelect } from '@vben/common-ui';
+import { useVbenVxeGrid } from '#/adapter/vxe-table';
+import { ElMessage } from 'element-plus';
 
-import {
-  ElCard,
-  ElMessage,
-  ElOption,
-  ElSelect,
-  ElSpace,
-  ElTable,
-  ElTableColumn,
-  ElTag,
-} from 'element-plus';
+import { cancelIndexJob, fetchIndexJobs, rebuildAllIndexes, retryIndexJob } from '#/api/rag';
 
-import {
-  cancelIndexJob,
-  fetchIndexJobs,
-  rebuildAllIndexes,
-  retryIndexJob,
-} from '#/api/rag';
+import { statusLabels, statusOptions, typeLabels, typeOptions, useColumns } from './data';
 
-const jobs = ref<IndexJob[]>([]);
-const total = shallowRef(0);
-const loading = shallowRef(false);
-const actionLoadingId = shallowRef('');
-const query = reactive<{
-  status: '' | IndexJobStatus;
-  type: '' | IndexJobType;
-}>({
-  status: '',
-  type: '',
+type QueryParams = { page?: { currentPage?: number; pageSize?: number } };
+
+const tableLoading = ref(false);
+const actionLoadingId = ref('');
+const searchForm = reactive<{ documentId: string; status: '' | IndexJobStatus; type: '' | IndexJobType }>({
+  documentId: '', status: '', type: '',
+});
+let refreshTimer: ReturnType<typeof setInterval> | undefined;
+
+const [Grid, gridApi] = useVbenVxeGrid({
+  gridOptions: {
+    columns: useColumns(),
+    height: 560,
+    pagerConfig: { enabled: true, pageSize: 20, pageSizes: [10, 20, 50] },
+    proxyConfig: { ajax: { query: async (params) => queryJobs(params as QueryParams) } },
+    rowConfig: { keyField: 'id' },
+    toolbarConfig: { custom: true, export: false, refresh: true, zoom: true },
+  } as VxeTableGridOptions,
 });
 
-const statusLabels: Record<IndexJobStatus, string> = {
-  canceled: '已取消',
-  failed: '失败',
-  pending: '等待中',
-  running: '执行中',
-  succeeded: '成功',
-};
+const isRunning = computed(() => gridApi.grid.getTableData().tableData.some((job: IndexJob) => ['pending', 'running'].includes(job.status)));
 
-const typeLabels: Record<IndexJobType, string> = {
-  chunk_document: '文档分块',
-  delete_document_index: '删除索引',
-  generate_embeddings: '生成向量',
-  parse_document: '解析文档',
-  rebuild_all_indexes: '全量重建索引',
-  rebuild_document_index: '重建文档索引',
-};
-
-const runningCount = computed(
-  () => jobs.value.filter((job) => job.status === 'running').length,
-);
-
-function asJob(row: unknown) {
-  return row as IndexJob;
-}
-
-function statusType(status: IndexJobStatus) {
-  if (status === 'succeeded') return 'success';
-  if (status === 'failed') return 'danger';
-  if (status === 'running') return 'warning';
-  return 'info';
-}
-
-async function loadJobs() {
-  loading.value = true;
+async function queryJobs(params?: QueryParams) {
+  tableLoading.value = true;
   try {
     const data = await fetchIndexJobs({
-      page: 1,
-      pageSize: 50,
-      status: query.status || undefined,
-      type: query.type || undefined,
+      documentId: searchForm.documentId || undefined,
+      page: Number(params?.page?.currentPage ?? 1),
+      pageSize: Number(params?.page?.pageSize ?? 20),
+      status: searchForm.status || undefined,
+      type: searchForm.type || undefined,
     });
-    jobs.value = data.items;
-    total.value = data.total;
+    return { items: data.items, total: data.total };
   } finally {
-    loading.value = false;
+    tableLoading.value = false;
   }
 }
 
-async function handleRetry(job: IndexJob) {
+function onSearch() { gridApi.query(); }
+function onReset() { searchForm.documentId = ''; searchForm.status = ''; searchForm.type = ''; gridApi.query(); }
+function onRefresh() { gridApi.query(); }
+function getTypeLabel(type: unknown) { return typeLabels[type as IndexJobType] ?? String(type); }
+function getStatusLabel(status: unknown) { return statusLabels[status as IndexJobStatus] ?? String(status); }
+
+async function onRetry(job: IndexJob) {
   actionLoadingId.value = job.id;
-  try {
-    await retryIndexJob(job.id);
-    ElMessage.success('已创建重试任务');
-    await loadJobs();
-  } finally {
-    actionLoadingId.value = '';
-  }
+  try { await retryIndexJob(job.id); ElMessage.success('重试任务已创建'); onRefresh(); }
+  finally { actionLoadingId.value = ''; }
 }
 
-async function handleCancel(job: IndexJob) {
+async function onCancel(job: IndexJob) {
   actionLoadingId.value = job.id;
-  try {
-    await cancelIndexJob(job.id);
-    ElMessage.success('任务已取消');
-    await loadJobs();
-  } finally {
-    actionLoadingId.value = '';
-  }
+  try { await cancelIndexJob(job.id); ElMessage.success('任务已取消'); onRefresh(); }
+  finally { actionLoadingId.value = ''; }
 }
 
-async function handleRebuildAll() {
-  loading.value = true;
-  try {
-    await rebuildAllIndexes();
-    ElMessage.success('已创建全量重建任务');
-    await loadJobs();
-  } finally {
-    loading.value = false;
-  }
+async function onRebuildAll() {
+  tableLoading.value = true;
+  try { await rebuildAllIndexes(); ElMessage.success('全量重建任务已创建'); onRefresh(); }
+  finally { tableLoading.value = false; }
 }
 
-function formatDate(date?: string) {
-  return date ? new Date(date).toLocaleString('zh-CN') : '-';
-}
-
-onMounted(loadJobs);
+onMounted(() => {
+  refreshTimer = setInterval(() => { if (isRunning.value) onRefresh(); }, 1500);
+});
+onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer); });
 </script>
 
 <template>
-  <Page description="查看解析、分块、向量化、重建和删除索引的执行记录" title="索引任务">
-    <div class="mb-4 grid gap-4 md:grid-cols-3">
-      <ElCard shadow="never">
-        <div class="text-sm text-muted-foreground">任务总数</div>
-        <div class="mt-2 text-2xl font-semibold">{{ total }}</div>
-      </ElCard>
-      <ElCard shadow="never">
-        <div class="text-sm text-muted-foreground">执行中</div>
-        <div class="mt-2 text-2xl font-semibold text-warning">{{ runningCount }}</div>
-      </ElCard>
-      <ElCard shadow="never">
-        <div class="text-sm text-muted-foreground">当前筛选</div>
-        <div class="mt-2 text-sm text-muted-foreground">
-          {{ query.status ? statusLabels[query.status] : '全部状态' }} /
-          {{ query.type ? typeLabels[query.type] : '全部类型' }}
-        </div>
-      </ElCard>
+  <Page auto-content-height description="查看解析、索引、删除和全量重建任务的进度、结果与错误信息" title="索引任务">
+    <div class="mb-4 rounded-lg border border-border bg-card p-3 shadow-sm">
+      <div class="flex flex-wrap items-center gap-3">
+        <input v-model="searchForm.documentId" class="h-9 w-64 rounded-md border border-input bg-background px-3 text-sm outline-none" placeholder="按文档 ID 筛选" @keyup.enter="onSearch">
+        <VbenSelect v-model="searchForm.status" allow-clear class="w-32" :options="statusOptions" placeholder="任务状态" />
+        <VbenSelect v-model="searchForm.type" allow-clear class="w-44" :options="typeOptions" placeholder="任务类型" />
+        <VbenButton :loading="tableLoading" @click="onSearch">查询</VbenButton>
+        <VbenButton variant="outline" @click="onReset">重置</VbenButton>
+      </div>
     </div>
 
-    <ElCard shadow="never">
-      <template #header>
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <ElSpace>
-            <ElSelect v-model="query.status" clearable placeholder="任务状态" style="width: 140px">
-              <ElOption label="等待中" value="pending" />
-              <ElOption label="执行中" value="running" />
-              <ElOption label="成功" value="succeeded" />
-              <ElOption label="失败" value="failed" />
-              <ElOption label="已取消" value="canceled" />
-            </ElSelect>
-            <ElSelect v-model="query.type" clearable placeholder="任务类型" style="width: 180px">
-              <ElOption label="解析文档" value="parse_document" />
-              <ElOption label="重建文档索引" value="rebuild_document_index" />
-              <ElOption label="全量重建索引" value="rebuild_all_indexes" />
-              <ElOption label="删除索引" value="delete_document_index" />
-            </ElSelect>
-            <VbenButton :loading="loading" @click="loadJobs">查询</VbenButton>
-          </ElSpace>
-          <VbenButton :loading="loading" variant="outline" @click="handleRebuildAll">
-            创建全量重建任务
-          </VbenButton>
-        </div>
-      </template>
-
-      <ElTable v-loading="loading" :data="jobs" stripe>
-        <ElTableColumn label="任务类型" width="150">
-          <template #default="{ row }">{{ typeLabels[asJob(row).type] }}</template>
-        </ElTableColumn>
-        <ElTableColumn label="文档" min-width="220">
-          <template #default="{ row }">{{ asJob(row).documentTitle || asJob(row).documentId || '-' }}</template>
-        </ElTableColumn>
-        <ElTableColumn label="状态" width="110">
-          <template #default="{ row }">
-            <ElTag :type="statusType(asJob(row).status)">
-              {{ statusLabels[asJob(row).status] }}
-            </ElTag>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn label="进度" width="90" prop="progress" />
-        <ElTableColumn label="当前步骤" min-width="180" prop="currentStep" show-overflow-tooltip />
-        <ElTableColumn label="错误信息" min-width="180" prop="errorMessage" show-overflow-tooltip />
-        <ElTableColumn label="创建时间" width="180">
-          <template #default="{ row }">{{ formatDate(asJob(row).createdAt) }}</template>
-        </ElTableColumn>
-        <ElTableColumn align="center" fixed="right" label="操作" width="170">
-          <template #default="{ row }">
-            <ElSpace>
-              <VbenButton
-                :disabled="asJob(row).status !== 'failed'"
-                :loading="actionLoadingId === asJob(row).id"
-                size="sm"
-                variant="link"
-                @click="handleRetry(asJob(row))"
-              >
-                重试
-              </VbenButton>
-              <VbenButton
-                :disabled="!['pending', 'running'].includes(asJob(row).status)"
-                :loading="actionLoadingId === asJob(row).id"
-                size="sm"
-                variant="link"
-                @click="handleCancel(asJob(row))"
-              >
-                取消
-              </VbenButton>
-            </ElSpace>
-          </template>
-        </ElTableColumn>
-      </ElTable>
-    </ElCard>
+    <div class="w-full overflow-x-auto">
+      <Grid table-title="任务列表">
+        <template #toolbar-tools>
+          <div class="flex items-center gap-2">
+            <VbenButton :loading="tableLoading" variant="outline" @click="onRefresh">刷新</VbenButton>
+            <VbenButton :loading="tableLoading" @click="onRebuildAll">全量重建索引</VbenButton>
+          </div>
+        </template>
+        <template #type="{ row }">{{ getTypeLabel(row.type) }}</template>
+        <template #status="{ row }">
+          <span class="inline-flex rounded-md border px-2 py-0.5 text-xs" :class="row.status === 'failed' ? 'border-destructive/30 text-destructive' : row.status === 'succeeded' ? 'border-emerald-500/30 text-emerald-600' : 'border-amber-500/30 text-amber-600'">
+            {{ getStatusLabel(row.status) }}
+          </span>
+        </template>
+        <template #operation="{ row }">
+          <div class="flex justify-center gap-2">
+            <VbenButton :disabled="row.status !== 'failed'" :loading="actionLoadingId === row.id" size="sm" variant="link" @click="onRetry(row)">重试</VbenButton>
+            <VbenButton :disabled="!['pending', 'running'].includes(row.status)" :loading="actionLoadingId === row.id" class="text-destructive" size="sm" variant="link" @click="onCancel(row)">取消</VbenButton>
+          </div>
+        </template>
+      </Grid>
+    </div>
   </Page>
 </template>

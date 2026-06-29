@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 
-import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
 import { uploadStorage } from './upload-storage.config';
 
@@ -14,7 +13,7 @@ import { uploadStorage } from './upload-storage.config';
       },
     }),
   ],
-  controllers: [FilesController],
   providers: [FilesService],
+  exports: [FilesService, MulterModule],
 })
 export class FilesModule {}

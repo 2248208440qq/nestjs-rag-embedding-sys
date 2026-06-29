@@ -1,9 +1,7 @@
 import type {
   CreateKnowledgeDocumentRequest,
-  DocumentDeleteResponse,
-  DocumentExtractionResponse,
-  DocumentIndexResponse,
   DocumentUploadResponse,
+  CreateIndexJobResponse,
   KnowledgeDocument,
 } from './types';
 
@@ -45,13 +43,13 @@ export function uploadDocument(
 }
 
 export function extractDocument(id: string) {
-  return ragPost<DocumentExtractionResponse>(`/documents/${id}/extract`);
+  return ragPost<CreateIndexJobResponse>(`/documents/${id}/extract`);
 }
 
 export function indexDocument(id: string) {
-  return ragPost<DocumentIndexResponse>(`/documents/${id}/index`);
+  return ragPost<CreateIndexJobResponse>(`/documents/${id}/index`);
 }
 
 export function deleteDocument(id: string) {
-  return ragDelete<DocumentDeleteResponse>(`/documents/${id}`);
+  return ragDelete<CreateIndexJobResponse>(`/documents/${id}`);
 }

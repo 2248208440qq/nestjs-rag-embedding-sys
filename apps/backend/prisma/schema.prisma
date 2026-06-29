@@ -68,22 +68,32 @@ enum KnowledgeDocumentSourceType {
 }
 
 model IndexJob {
-  id           String                   @id @default(uuid()) @db.Uuid
-  documentId   String?                  @map("document_id") @db.Uuid
-  document     KnowledgeDocument?       @relation(fields: [documentId], references: [id], onDelete: SetNull)
-  type         IndexJobType
-  status       IndexJobStatus           @default(pending)
-  progress     Int                      @default(0)
-  currentStep  String?                  @map("current_step")
-  errorMessage String?                  @map("error_message")
-  retryCount   Int                      @default(0) @map("retry_count")
-  result       Json                     @default("{}")
-  startedAt    DateTime?                @map("started_at")
-  finishedAt   DateTime?                @map("finished_at")
-  createdAt    DateTime                 @default(now()) @map("created_at")
-  updatedAt    DateTime                 @updatedAt @map("updated_at")
+  id                String                   @id @default(uuid()) @db.Uuid
+  documentId        String?                  @map("document_id") @db.Uuid
+  document          KnowledgeDocument?       @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  parentJobId       String?                  @map("parent_job_id") @db.Uuid
+  parentJob         IndexJob?                @relation("IndexJobHierarchy", fields: [parentJobId], references: [id], onDelete: SetNull)
+  childJobs         IndexJob[]               @relation("IndexJobHierarchy")
+  attemptOfJobId    String?                  @map("attempt_of_job_id") @db.Uuid
+  attemptOfJob      IndexJob?                @relation("IndexJobAttempts", fields: [attemptOfJobId], references: [id], onDelete: SetNull)
+  retryAttempts     IndexJob[]               @relation("IndexJobAttempts")
+  queueJobId        String?                  @unique @map("queue_job_id")
+  cancelRequestedAt DateTime?                @map("cancel_requested_at")
+  type              IndexJobType
+  status            IndexJobStatus           @default(pending)
+  progress          Int                      @default(0)
+  currentStep       String?                  @map("current_step")
+  errorMessage      String?                  @map("error_message")
+  retryCount        Int                      @default(0) @map("retry_count")
+  result            Json                     @default("{}")
+  startedAt         DateTime?                @map("started_at")
+  finishedAt        DateTime?                @map("finished_at")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
 
   @@index([documentId])
+  @@index([parentJobId])
+  @@index([attemptOfJobId])
   @@index([status])
   @@index([type])
   @@map("index_jobs")
@@ -161,6 +171,7 @@ model QaTrace {
 
 enum IndexJobType {
   parse_document
+  // Legacy task types kept for existing task history. New jobs never use them.
   chunk_document
   generate_embeddings
   rebuild_document_index
