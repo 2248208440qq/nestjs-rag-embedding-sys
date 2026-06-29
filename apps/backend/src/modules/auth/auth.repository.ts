@@ -6,8 +6,6 @@ import { PrismaService } from '../../prisma/prisma.service';
  *
  * RefreshToken storage has been migrated to Redis (see AuthService).
  * This repository now only handles user and permission-code queries.
- * The `RefreshToken` Prisma model is retained for backward-compatibility
- * but is no longer used at the application layer.
  */
 @Injectable()
 export class AuthRepository {
