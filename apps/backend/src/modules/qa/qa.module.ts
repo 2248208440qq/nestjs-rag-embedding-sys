@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 
-import { AgentsModule } from '@/modules/agents/agents.module';
+import { AgentChatModule } from '@/modules/agent/chat/chat.module';
 import { QaController } from '@/modules/qa/qa.controller';
 import { QaService } from '@/modules/qa/qa.service';
 
 @Module({
-  imports: [AgentsModule],
+  imports: [AgentChatModule],
   controllers: [QaController],
   providers: [QaService],
 })

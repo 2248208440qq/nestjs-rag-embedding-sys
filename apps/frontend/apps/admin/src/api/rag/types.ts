@@ -1,5 +1,15 @@
 export type {
+  AgentChatRequest,
+  AgentChatResponse,
+  AgentMemoryType,
+  AgentMessage,
+  AgentMessageRole,
+  AgentMessageStatus,
+  AgentSession,
+  AgentSessionStatus,
+  AgentType,
   CreateKnowledgeDocumentRequest,
+  CreateAgentSessionRequest,
   DocumentDeleteResponse,
   DocumentExtractionResponse,
   DocumentIndexResponse,
@@ -25,5 +35,6 @@ export type {
   SearchRequest,
   SearchResponse,
   SearchResult,
+  UpdateAgentSessionRequest,
   UpdateKnowledgeBaseRequest,
 } from '@repo/shared-types';

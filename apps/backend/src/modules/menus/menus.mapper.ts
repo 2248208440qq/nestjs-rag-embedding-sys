@@ -1,5 +1,4 @@
-import type { Prisma } from '@prisma/client';
-import type { MenuItem, MenuMeta, MenuRecord } from '@repo/shared-types';
+import type { MenuItem, MenuRecord } from '@repo/shared-types';
 
 export interface MenuRow {
   id: string;
@@ -11,7 +10,7 @@ export interface MenuRow {
   type: string;
   status: string;
   orderNo: number;
-  meta: Prisma.JsonValue;
+  meta: any;
   createdAt: Date;
   updatedAt: Date;
   children?: MenuRow[];
@@ -19,9 +18,9 @@ export interface MenuRow {
 
 export function toMenuTree(menus: MenuRow[]): MenuItem[] {
   return menus.map((menu) => {
-    const meta: MenuMeta =
+    const meta =
       typeof menu.meta === 'object' && menu.meta !== null
-        ? (menu.meta as MenuMeta)
+        ? menu.meta
         : { title: menu.name };
 
     const item: MenuItem = {
@@ -36,11 +35,6 @@ export function toMenuTree(menus: MenuRow[]): MenuItem[] {
 
     if (menu.children && menu.children.length > 0) {
       item.children = toMenuTree(menu.children);
-
-      // Catalog menus without a component should redirect to the first child
-      if (menu.type === 'catalog' && !menu.component && item.children.length > 0) {
-        item.redirect = item.children[0]!.path;
-      }
     }
 
     return item;
@@ -49,9 +43,9 @@ export function toMenuTree(menus: MenuRow[]): MenuItem[] {
 
 export function toMenuRecordTree(menus: MenuRow[]): MenuRecord[] {
   return menus.map((menu) => {
-    const meta: MenuMeta =
+    const meta =
       typeof menu.meta === 'object' && menu.meta !== null
-        ? (menu.meta as MenuMeta)
+        ? menu.meta
         : { title: menu.name };
 
     const record: MenuRecord = {

@@ -8,41 +8,41 @@ datasource db {
 }
 
 model KnowledgeDocument {
-  id               String                   @id @default(uuid()) @db.Uuid
+  id               String                      @id @default(uuid()) @db.Uuid
   title            String
   sourceType       KnowledgeDocumentSourceType @default(other)
-  status           KnowledgeDocumentStatus  @default(uploaded)
-  originalFileName String?                  @map("original_file_name")
-  mimeType         String?                  @map("mime_type")
+  status           KnowledgeDocumentStatus     @default(uploaded)
+  originalFileName String?                     @map("original_file_name")
+  mimeType         String?                     @map("mime_type")
   size             Int?
-  storagePath      String?                  @map("storage_path")
+  storagePath      String?                     @map("storage_path")
   authority        String?
   jurisdiction     String?
-  publishDate      DateTime?                @map("publish_date")
-  effectiveDate    DateTime?                @map("effective_date")
+  publishDate      DateTime?                   @map("publish_date")
+  effectiveDate    DateTime?                   @map("effective_date")
   version          String?
-  tags             String[]                 @default([])
-  metadata         Json                     @default("{}")
+  tags             String[]                    @default([])
+  metadata         Json                        @default("{}")
   chunks           KnowledgeDocumentChunk[]
   knowledgeBases   KnowledgeBaseDocument[]
   indexJobs        IndexJob[]
-  createdAt        DateTime                 @default(now()) @map("created_at")
-  updatedAt        DateTime                 @updatedAt @map("updated_at")
+  createdAt        DateTime                    @default(now()) @map("created_at")
+  updatedAt        DateTime                    @updatedAt @map("updated_at")
 
   @@map("knowledge_documents")
 }
 
 model KnowledgeDocumentChunk {
-  id          String            @id @default(uuid()) @db.Uuid
-  documentId  String            @map("document_id") @db.Uuid
-  document    KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id          String                       @id @default(uuid()) @db.Uuid
+  documentId  String                       @map("document_id") @db.Uuid
+  document    KnowledgeDocument            @relation(fields: [documentId], references: [id], onDelete: Cascade)
   content     String
-  sectionPath String?           @map("section_path")
-  articleNo   String?           @map("article_no")
-  chunkIndex  Int               @map("chunk_index")
+  sectionPath String?                      @map("section_path")
+  articleNo   String?                      @map("article_no")
+  chunkIndex  Int                          @map("chunk_index")
   embedding   Unsupported("vector(1024)")?
-  metadata    Json              @default("{}")
-  createdAt   DateTime          @default(now()) @map("created_at")
+  metadata    Json                         @default("{}")
+  createdAt   DateTime                     @default(now()) @map("created_at")
 
   @@index([documentId])
   @@index([articleNo])
@@ -68,28 +68,28 @@ enum KnowledgeDocumentSourceType {
 }
 
 model IndexJob {
-  id                String                   @id @default(uuid()) @db.Uuid
-  documentId        String?                  @map("document_id") @db.Uuid
-  document          KnowledgeDocument?       @relation(fields: [documentId], references: [id], onDelete: SetNull)
-  parentJobId       String?                  @map("parent_job_id") @db.Uuid
-  parentJob         IndexJob?                @relation("IndexJobHierarchy", fields: [parentJobId], references: [id], onDelete: SetNull)
-  childJobs         IndexJob[]               @relation("IndexJobHierarchy")
-  attemptOfJobId    String?                  @map("attempt_of_job_id") @db.Uuid
-  attemptOfJob      IndexJob?                @relation("IndexJobAttempts", fields: [attemptOfJobId], references: [id], onDelete: SetNull)
-  retryAttempts     IndexJob[]               @relation("IndexJobAttempts")
-  queueJobId        String?                  @unique @map("queue_job_id")
-  cancelRequestedAt DateTime?                @map("cancel_requested_at")
+  id                String             @id @default(uuid()) @db.Uuid
+  documentId        String?            @map("document_id") @db.Uuid
+  document          KnowledgeDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  parentJobId       String?            @map("parent_job_id") @db.Uuid
+  parentJob         IndexJob?          @relation("IndexJobHierarchy", fields: [parentJobId], references: [id], onDelete: SetNull)
+  childJobs         IndexJob[]         @relation("IndexJobHierarchy")
+  attemptOfJobId    String?            @map("attempt_of_job_id") @db.Uuid
+  attemptOfJob      IndexJob?          @relation("IndexJobAttempts", fields: [attemptOfJobId], references: [id], onDelete: SetNull)
+  retryAttempts     IndexJob[]         @relation("IndexJobAttempts")
+  queueJobId        String?            @unique @map("queue_job_id")
+  cancelRequestedAt DateTime?          @map("cancel_requested_at")
   type              IndexJobType
-  status            IndexJobStatus           @default(pending)
-  progress          Int                      @default(0)
-  currentStep       String?                  @map("current_step")
-  errorMessage      String?                  @map("error_message")
-  retryCount        Int                      @default(0) @map("retry_count")
-  result            Json                     @default("{}")
-  startedAt         DateTime?                @map("started_at")
-  finishedAt        DateTime?                @map("finished_at")
-  createdAt         DateTime                 @default(now()) @map("created_at")
-  updatedAt         DateTime                 @updatedAt @map("updated_at")
+  status            IndexJobStatus     @default(pending)
+  progress          Int                @default(0)
+  currentStep       String?            @map("current_step")
+  errorMessage      String?            @map("error_message")
+  retryCount        Int                @default(0) @map("retry_count")
+  result            Json               @default("{}")
+  startedAt         DateTime?          @map("started_at")
+  finishedAt        DateTime?          @map("finished_at")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
 
   @@index([documentId])
   @@index([parentJobId])
@@ -169,6 +169,112 @@ model QaTrace {
   @@map("qa_traces")
 }
 
+model AgentSession {
+  id               String             @id @default(uuid()) @db.Uuid
+  userId           String?            @map("user_id") @db.Uuid
+  title            String?
+  agentType        AgentType          @default(legal_qa) @map("agent_type")
+  status           AgentSessionStatus @default(active)
+  knowledgeBaseIds String[]           @default([]) @map("knowledge_base_ids")
+  metadata         Json               @default("{}")
+  messages         AgentMessage[]
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([agentType])
+  @@index([status])
+  @@map("agent_sessions")
+}
+
+model AgentMessage {
+  id        String             @id @default(uuid()) @db.Uuid
+  sessionId String             @map("session_id") @db.Uuid
+  session   AgentSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      AgentMessageRole
+  content   String
+  status    AgentMessageStatus @default(completed)
+  citations Json               @default("[]")
+  toolCalls Json               @default("[]") @map("tool_calls")
+  metadata  Json               @default("{}")
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  @@index([sessionId])
+  @@index([role])
+  @@index([status])
+  @@map("agent_messages")
+}
+
+model AgentMemory {
+  id        String                       @id @default(uuid()) @db.Uuid
+  userId    String?                      @map("user_id") @db.Uuid
+  sessionId String?                      @map("session_id") @db.Uuid
+  type      AgentMemoryType
+  content   String
+  summary   String?
+  embedding Unsupported("vector(1024)")?
+  metadata  Json                         @default("{}")
+  createdAt DateTime                     @default(now()) @map("created_at")
+  updatedAt DateTime                     @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([type])
+  @@map("agent_memories")
+}
+
+model AgentTrace {
+  id             String   @id @default(uuid()) @db.Uuid
+  sessionId      String?  @map("session_id") @db.Uuid
+  messageId      String?  @map("message_id") @db.Uuid
+  agentType      String   @map("agent_type")
+  input          Json     @default("{}")
+  output         Json     @default("{}")
+  toolCalls      Json     @default("[]") @map("tool_calls")
+  promptSnapshot Json     @default("{}") @map("prompt_snapshot")
+  modelInfo      Json     @default("{}") @map("model_info")
+  error          String?
+  latencyMs      Int?     @map("latency_ms")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([sessionId])
+  @@index([messageId])
+  @@index([agentType])
+  @@map("agent_traces")
+}
+
+enum AgentType {
+  legal_qa
+  legal_research
+  document_review
+}
+
+enum AgentSessionStatus {
+  active
+  archived
+}
+
+enum AgentMessageRole {
+  system
+  user
+  assistant
+  tool
+}
+
+enum AgentMessageStatus {
+  pending
+  running
+  completed
+  failed
+}
+
+enum AgentMemoryType {
+  short_summary
+  long_term_fact
+  user_preference
+  case_context
+}
+
 enum IndexJobType {
   parse_document
   rebuild_document_index
@@ -192,18 +298,18 @@ enum KnowledgeBaseStatus {
 // ==================== RBAC Models ====================
 
 model User {
-  id            String         @id @default(uuid()) @db.Uuid
-  username      String         @unique
-  password      String
-  realName      String?        @map("real_name")
-  homePath      String?        @map("home_path")
-  avatar        String?
-  status        UserStatus     @default(active)
-  deptId        String?        @map("dept_id") @db.Uuid
-  dept          Dept?          @relation(fields: [deptId], references: [id])
-  roles         UserRole[]
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  id        String     @id @default(uuid()) @db.Uuid
+  username  String     @unique
+  password  String
+  realName  String?    @map("real_name")
+  homePath  String?    @map("home_path")
+  avatar    String?
+  status    UserStatus @default(active)
+  deptId    String?    @map("dept_id") @db.Uuid
+  dept      Dept?      @relation(fields: [deptId], references: [id])
+  roles     UserRole[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
 
   @@map("users")
 }

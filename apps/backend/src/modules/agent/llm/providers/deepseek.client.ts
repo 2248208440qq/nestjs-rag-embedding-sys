@@ -3,26 +3,29 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
 
 import { AppConfigService } from '@/config/app-config.service';
+import type {
+  LlmClient,
+  LlmInvokeInput,
+  LlmInvokeResult,
+  LlmModelInfo,
+} from '@/modules/agent/llm/contracts/llm-client.interface';
 
 @Injectable()
-export class DeepSeekLlmService {
+export class DeepSeekClient implements LlmClient {
   constructor(private readonly config: AppConfigService) {}
 
   get enabled() {
     return this.config.llmEnabled && Boolean(this.config.llmApiKey);
   }
 
-  get modelInfo() {
+  get modelInfo(): LlmModelInfo {
     return {
       model: this.config.llmModel,
       provider: this.config.llmProvider,
     };
   }
 
-  async generateAnswer(input: {
-    context: string;
-    question: string;
-  }): Promise<string> {
+  async invoke(input: LlmInvokeInput): Promise<LlmInvokeResult> {
     if (!this.enabled) {
       throw new Error('LLM is disabled');
     }
@@ -39,30 +42,14 @@ export class DeepSeekLlmService {
     });
 
     const response = await model.invoke([
-      new SystemMessage(this.buildSystemPrompt()),
-      new HumanMessage(
-        [
-          `问题：${input.question}`,
-          '',
-          '可引用资料：',
-          input.context || '无可用资料。',
-          '',
-          '请基于上述资料作答。',
-        ].join('\n'),
-      ),
+      new SystemMessage(input.systemPrompt),
+      new HumanMessage(input.userPrompt),
     ]);
 
-    return this.toText(response.content);
-  }
-
-  private buildSystemPrompt() {
-    return [
-      '你是法律知识库问答助手。',
-      '只能依据用户提供的“可引用资料”回答，不得编造不存在的法律依据。',
-      '每个关键结论都必须使用形如 [1]、[2] 的引用标记。',
-      '如果资料不足，请明确说明“当前知识库依据不足”，并列出仍可参考的来源。',
-      '回答使用中文，结构清晰，避免输出与问题无关的内容。',
-    ].join('\n');
+    return {
+      content: this.toText(response.content),
+      modelInfo: this.modelInfo,
+    };
   }
 
   private toText(content: unknown) {
