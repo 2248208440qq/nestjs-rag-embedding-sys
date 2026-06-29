@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { KnowledgeBase, QaResponse, SearchResult } from '#/api/rag';
+import type { KnowledgeBase, QaCitation, QaResponse, SearchResult } from '#/api/rag';
 
 import { computed, onMounted, shallowRef } from 'vue';
 
@@ -21,6 +21,8 @@ import {
 
 import { askLegalQuestion, fetchKnowledgeBases } from '#/api/rag';
 
+const QA_TOP_K = 5;
+
 const question = shallowRef('');
 const loading = shallowRef(false);
 const knowledgeBaseLoading = shallowRef(false);
@@ -32,7 +34,15 @@ const hasCitationWarnings = computed(() => {
   return Boolean(response.value?.citationValidation?.warnings.length);
 });
 
-const sourceChunks = computed<SearchResult[]>(() => response.value?.sourceChunks ?? []);
+const selectedScopeLabel = computed(() => {
+  return knowledgeBaseIds.value.length > 0
+    ? `已选择 ${knowledgeBaseIds.value.length} 个知识库`
+    : '全部知识库';
+});
+
+const sourceChunks = computed<SearchResult[]>(() => {
+  return response.value?.sourceChunks ?? [];
+});
 
 onMounted(() => {
   void loadKnowledgeBases();
@@ -54,11 +64,9 @@ async function handleAsk() {
   loading.value = true;
   try {
     response.value = await askLegalQuestion({
-      knowledgeBaseIds: knowledgeBaseIds.value.length
-        ? knowledgeBaseIds.value
-        : undefined,
+      knowledgeBaseIds: knowledgeBaseIds.value.length ? knowledgeBaseIds.value : undefined,
       question: value,
-      topK: 20,
+      topK: QA_TOP_K,
     });
   } finally {
     loading.value = false;
@@ -71,14 +79,30 @@ async function handleCopyAnswer() {
   await navigator.clipboard.writeText(response.value.answer);
   ElMessage.success('答案已复制');
 }
+
+function formatMatchType(type?: SearchResult['matchType']) {
+  const labels: Record<NonNullable<SearchResult['matchType']>, string> = {
+    hybrid: '混合',
+    keyword: '关键词',
+    vector: '语义',
+  };
+
+  return type ? labels[type] : '-';
+}
+
+function formatScore(score?: number) {
+  return `${(Number(score ?? 0) * 100).toFixed(1)}%`;
+}
+
+function formatLocation(row: Pick<QaCitation, 'articleNo' | 'sectionPath'>) {
+  const parts = [row.sectionPath, row.articleNo].filter(Boolean);
+  return parts.length > 0 ? parts.join(' / ') : '-';
+}
 </script>
 
 <template>
-  <Page
-    description="基于法律知识库检索结果生成带引用的问答草稿"
-    title="法律问答"
-  >
-    <ElCard class="mb-4" shadow="never">
+  <Page description="基于知识库检索结果生成带引用的法律问答草稿。" title="法律问答">
+    <ElCard class="mb-4 qa-panel" shadow="never">
       <ElSpace alignment="start" class="w-full" direction="vertical" fill>
         <ElInput
           v-model="question"
@@ -107,29 +131,27 @@ async function handleCopyAnswer() {
             />
           </ElSelect>
 
-          <VbenButton
-            :disabled="!question.trim()"
-            :loading="loading"
-            @click="handleAsk"
-          >
-            生成答案
-          </VbenButton>
+          <ElSpace wrap>
+            <ElTag effect="plain" type="info">{{ selectedScopeLabel }}</ElTag>
+            <ElTag effect="plain">引用 Top {{ QA_TOP_K }}</ElTag>
+            <VbenButton :disabled="!question.trim()" :loading="loading" @click="handleAsk">
+              生成答案
+            </VbenButton>
+          </ElSpace>
         </div>
       </ElSpace>
     </ElCard>
 
-    <ElCard v-if="response" class="mb-4" shadow="never">
+    <ElCard v-if="response" class="mb-4 qa-panel" shadow="never">
       <template #header>
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-2">
-            <span>答案草稿</span>
+            <span class="qa-section-title">答案草稿</span>
             <ElTag v-if="response.modelInfo" effect="plain" type="success">
               模型：{{ response.modelInfo.model }}
             </ElTag>
             <ElTag v-else effect="plain" type="info">模型未启用</ElTag>
-            <ElTag v-if="response.fallbackUsed" type="warning">
-              Fallback
-            </ElTag>
+            <ElTag v-if="response.fallbackUsed" type="warning"> 检索式 fallback </ElTag>
             <ElTag
               v-if="response.citationValidation"
               :type="response.citationValidation.passed ? 'success' : 'warning'"
@@ -139,7 +161,7 @@ async function handleCopyAnswer() {
             </ElTag>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <ElTag v-if="response.retrievalTraceId" effect="plain">
               Trace: {{ response.retrievalTraceId }}
             </ElTag>
@@ -150,48 +172,81 @@ async function handleCopyAnswer() {
         </div>
       </template>
 
-      <ElAlert
-        v-if="hasCitationWarnings"
-        :closable="false"
-        class="mb-3"
-        show-icon
-        type="warning"
-      >
+      <ElAlert v-if="hasCitationWarnings" :closable="false" class="mb-3" show-icon type="warning">
         <template #title>
           {{ response.citationValidation?.warnings.join('；') }}
         </template>
       </ElAlert>
 
-      <pre class="whitespace-pre-wrap rounded-md bg-muted p-4 text-sm leading-6">{{ response.answer }}</pre>
+      <pre class="qa-answer">{{ response.answer }}</pre>
     </ElCard>
 
-    <ElCard v-if="response" class="mb-4" shadow="never">
-      <template #header>引用来源</template>
+    <ElCard v-if="response" class="mb-4 qa-panel" shadow="never">
+      <template #header>
+        <span class="qa-section-title">引用来源</span>
+      </template>
       <ElTable :data="response.citations" stripe>
         <ElTableColumn label="文档" min-width="220" prop="title" show-overflow-tooltip />
         <ElTableColumn label="条文" prop="articleNo" width="120" />
-        <ElTableColumn label="章节" min-width="180" prop="sectionPath" show-overflow-tooltip />
+        <ElTableColumn label="位置" min-width="220" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ formatLocation(row) }}
+          </template>
+        </ElTableColumn>
         <ElTableColumn label="Chunk ID" min-width="260" prop="chunkId" show-overflow-tooltip />
       </ElTable>
     </ElCard>
 
-    <ElCard v-if="response" shadow="never">
-      <template #header>Source Chunks</template>
+    <ElCard v-if="response" class="qa-panel" shadow="never">
+      <template #header>
+        <span class="qa-section-title">检索片段</span>
+      </template>
       <ElTable :data="sourceChunks" stripe>
         <ElTableColumn label="标题" min-width="220" prop="title" show-overflow-tooltip />
-        <ElTableColumn label="分数" width="120">
+        <ElTableColumn label="相关度" width="120">
           <template #default="{ row }">
-            {{ Number(row.score ?? 0).toFixed(4) }}
+            <span class="qa-score">{{ formatScore(row.score) }}</span>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="检索来源" width="120" prop="retrievalSource" />
+        <ElTableColumn label="命中方式" width="120">
+          <template #default="{ row }">
+            {{ formatMatchType(row.matchType) }}
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="位置" min-width="220" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ formatLocation(row) }}
+          </template>
+        </ElTableColumn>
         <ElTableColumn label="内容" min-width="360" prop="content" show-overflow-tooltip />
       </ElTable>
     </ElCard>
 
-    <ElEmpty
-      v-else
-      description="输入问题后生成带引用的法律问答草稿"
-    />
+    <ElEmpty v-else description="输入问题后生成带引用的法律问答草稿" />
   </Page>
 </template>
+
+<style scoped>
+.qa-panel {
+  border-color: hsl(var(--border) / 80%);
+}
+
+.qa-section-title {
+  font-weight: 600;
+}
+
+.qa-answer {
+  margin: 0;
+  white-space: pre-wrap;
+  border-radius: 8px;
+  background: hsl(var(--muted) / 80%);
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.qa-score {
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+</style>
