@@ -10,10 +10,10 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { CreateUserDto, UpdateUserDto } from '@repo/shared-backend';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
 import type { UserInfo } from '@repo/shared-types';
-import { UsersService } from './users.service';
+import { UsersService } from '@/modules/users/users.service';
 
 @ApiTags('users')
 @Controller()

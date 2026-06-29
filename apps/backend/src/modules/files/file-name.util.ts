@@ -1,6 +1,6 @@
 import { extname } from 'node:path';
 
-const MOJIBAKE_PATTERN = /[ÃÂäåæçèéï¼]/;
+import { MOJIBAKE_PATTERN } from '@/common/constants';
 
 export function decodeUploadFileName(originalName: string) {
   if (!MOJIBAKE_PATTERN.test(originalName)) {
@@ -12,7 +12,10 @@ export function decodeUploadFileName(originalName: string) {
 }
 
 export function sanitizeOriginalName(originalName: string) {
-  return decodeUploadFileName(originalName).replace(/[^\w.\-\u4e00-\u9fa5]+/g, '_');
+  return decodeUploadFileName(originalName).replace(
+    /[^\w.\-\u4e00-\u9fa5]+/g,
+    '_',
+  );
 }
 
 export function inferTitleFromFileName(originalName: string) {

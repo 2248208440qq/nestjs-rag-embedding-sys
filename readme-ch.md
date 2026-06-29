@@ -171,5 +171,7 @@ cd apps/backend && pnpm run prisma:seed
 - 后端 NestJS DTO、装饰器、日志、请求上下文等能力放在 `packages/shared-backend`。
 - RAG 相关 Vue 组件优先沉淀到 `packages/shared-ui`。
 - 后端业务代码按功能模块放在 `apps/backend/src/modules`。
+- 后端常量放在 `apps/backend/src/common/constants`，并通过 `src/common/constants/index.ts` 统一导出。
+- 后端 `apps/backend/src` 内部导入统一使用 `@/` 路径别名。
 - 前端 RAG 页面放在 `apps/frontend/apps/admin/src/views/rag`，API 客户端放在 `apps/frontend/apps/admin/src/api/rag`。
 - 新增运行命令、目录、基础设施或开发流程时，同步更新 README 和 Agent 文档。

@@ -1,20 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
-import type { TextChunk } from './chunking.types';
-
-const NUMBER_PATTERN = '[零一二三四五六七八九十百千万\\d]+';
-const ARTICLE_PATTERN = new RegExp(
-  `^第${NUMBER_PATTERN}条(?=[\\s\\u3000])`,
-  'gm',
-);
-const HEADING_PATTERN = new RegExp(
-  `^第${NUMBER_PATTERN}(编|章|节)[\\s\\u3000]*[^\\n]*`,
-  'gm',
-);
-const MAX_CHUNK_LENGTH = 900;
-const MIN_CHUNK_LENGTH = 120;
-
-type HeadingLevel = '编' | '章' | '节';
+import {
+  ARTICLE_PATTERN,
+  HEADING_PATTERN,
+  MAX_CHUNK_LENGTH,
+  MIN_CHUNK_LENGTH,
+  type HeadingLevel,
+} from '@/common/constants';
+import type { TextChunk } from '@/modules/chunking/chunking.types';
 
 interface HeadingMarker {
   index: number;

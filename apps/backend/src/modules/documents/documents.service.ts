@@ -6,11 +6,11 @@ import type {
   KnowledgeDocument,
 } from '@repo/shared-types';
 
-import { PrismaService } from '../../prisma/prisma.service';
-import { FilesService } from '../files/files.service';
-import { IndexJobsService } from '../index-jobs/index-jobs.service';
-import { toKnowledgeDocument } from './document.mapper';
-import { CreateDocumentDto } from './dto/create-document.dto';
+import { PrismaService } from '@/prisma/prisma.service';
+import { FilesService } from '@/modules/files/files.service';
+import { IndexJobsService } from '@/modules/index-jobs/index-jobs.service';
+import { toKnowledgeDocument } from '@/modules/documents/document.mapper';
+import { CreateDocumentDto } from '@/modules/documents/dto/create-document.dto';
 
 @Injectable()
 export class DocumentsService {

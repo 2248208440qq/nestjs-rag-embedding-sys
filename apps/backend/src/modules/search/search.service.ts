@@ -2,8 +2,13 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { SearchRequest, SearchResponse, SearchResult } from '@repo/shared-types';
 
-import { EmbeddingClientService } from '../embeddings/embedding-client.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import {
+  MAX_CANDIDATE_LIMIT,
+  MIN_CANDIDATE_LIMIT,
+  RRF_K,
+} from '@/common/constants';
+import { EmbeddingClientService } from '@/modules/embeddings/embedding-client.service';
+import { PrismaService } from '@/prisma/prisma.service';
 
 interface SearchRow {
   chunk_id: string;
@@ -28,10 +33,6 @@ interface MergedSearchRow extends SearchRow {
   keywordScore?: number;
   rrfScore: number;
 }
-
-const RRF_K = 60;
-const MIN_CANDIDATE_LIMIT = 50;
-const MAX_CANDIDATE_LIMIT = 100;
 
 @Injectable()
 export class SearchService {

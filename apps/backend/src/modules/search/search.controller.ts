@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import type { SearchRequest } from '@repo/shared-types';
 
-import { SearchService } from './search.service';
+import { SearchService } from '@/modules/search/search.service';
 
 @Controller('search')
 export class SearchController {

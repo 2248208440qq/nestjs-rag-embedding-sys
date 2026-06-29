@@ -1,20 +1,7 @@
 import { IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
 import type { IndexJobStatus, IndexJobType } from '@repo/shared-types';
 
-const JOB_STATUSES: IndexJobStatus[] = [
-  'canceled',
-  'failed',
-  'pending',
-  'running',
-  'succeeded',
-];
-
-const JOB_TYPES: IndexJobType[] = [
-  'delete_document_index',
-  'parse_document',
-  'rebuild_all_indexes',
-  'rebuild_document_index',
-];
+import { INDEX_JOB_STATUSES, INDEX_JOB_TYPES } from '@/common/constants';
 
 export class IndexJobQueryDto {
   @IsOptional()
@@ -33,11 +20,11 @@ export class IndexJobQueryDto {
   @IsString()
   pageSize?: string;
 
-  @IsIn(JOB_STATUSES)
+  @IsIn(INDEX_JOB_STATUSES)
   @IsOptional()
   status?: IndexJobStatus;
 
-  @IsIn(JOB_TYPES)
+  @IsIn(INDEX_JOB_TYPES)
   @IsOptional()
   type?: IndexJobType;
 }

@@ -5,18 +5,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import mammoth from 'mammoth';
 import { PDFParse } from 'pdf-parse';
 
-const TEXT_EXTENSIONS = new Set([
-  '.txt',
-  '.md',
-  '.markdown',
-  '.csv',
-  '.json',
-  '.html',
-  '.htm',
-]);
-
-const DOCX_EXTENSIONS = new Set(['.docx']);
-const PDF_EXTENSIONS = new Set(['.pdf']);
+import { DOCX_EXTENSIONS, PDF_EXTENSIONS, TEXT_EXTENSIONS } from '@/common/constants';
 
 @Injectable()
 export class TextExtractorService {

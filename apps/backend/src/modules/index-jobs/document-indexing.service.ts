@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
-import { AppConfigService } from '../../config/app-config.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { LegalChunkingService } from '../chunking/legal-chunking.service';
-import { EmbeddingClientService } from '../embeddings/embedding-client.service';
-import { TextExtractorService } from '../extractors/text-extractor.service';
-import { FilesService } from '../files/files.service';
-import { IndexJobsService } from './index-jobs.service';
+import { AppConfigService } from '@/config/app-config.service';
+import { PrismaService } from '@/prisma/prisma.service';
+import { LegalChunkingService } from '@/modules/chunking/legal-chunking.service';
+import { EmbeddingClientService } from '@/modules/embeddings/embedding-client.service';
+import { TextExtractorService } from '@/modules/extractors/text-extractor.service';
+import { FilesService } from '@/modules/files/files.service';
+import { IndexJobsService } from '@/modules/index-jobs/index-jobs.service';
 
 type ExecutableIndexJob = Awaited<ReturnType<IndexJobsService['getExecutionJob']>>;
 

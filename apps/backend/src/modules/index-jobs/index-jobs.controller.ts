@@ -8,8 +8,8 @@ import {
   Query,
 } from '@nestjs/common';
 
-import { IndexJobQueryDto } from './dto/index-job-query.dto';
-import { IndexJobsService } from './index-jobs.service';
+import { IndexJobQueryDto } from '@/modules/index-jobs/dto/index-job-query.dto';
+import { IndexJobsService } from '@/modules/index-jobs/index-jobs.service';
 
 @Controller('index-jobs')
 export class IndexJobsController {

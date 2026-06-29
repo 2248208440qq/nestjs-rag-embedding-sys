@@ -2,10 +2,11 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Job } from 'bullmq';
 
-import { PrismaService } from '../../prisma/prisma.service';
-import { DocumentIndexingService } from './document-indexing.service';
-import { INDEX_JOBS_QUEUE, type IndexJobQueuePayload } from './index-jobs.queue';
-import { IndexJobCanceledError, IndexJobsService } from './index-jobs.service';
+import { INDEX_JOBS_QUEUE } from '@/common/constants';
+import { PrismaService } from '@/prisma/prisma.service';
+import { DocumentIndexingService } from '@/modules/index-jobs/document-indexing.service';
+import type { IndexJobQueuePayload } from '@/modules/index-jobs/index-jobs.queue';
+import { IndexJobCanceledError, IndexJobsService } from '@/modules/index-jobs/index-jobs.service';
 
 @Injectable()
 @Processor(INDEX_JOBS_QUEUE)

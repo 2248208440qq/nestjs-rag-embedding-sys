@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import type { CreateRoleDto, UpdateRoleDto } from '@repo/shared-backend';
-import { RolesRepository } from './roles.repository';
+import { RolesRepository } from '@/modules/roles/roles.repository';
 
 @Injectable()
 export class RolesService {

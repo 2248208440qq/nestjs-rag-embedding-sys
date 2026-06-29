@@ -1,4 +1,4 @@
-import { LegalChunkingService } from './legal-chunking.service';
+import { LegalChunkingService } from '@/modules/chunking/legal-chunking.service';
 
 describe('LegalChunkingService', () => {
   it('splits oversized legal articles while preserving article metadata', () => {

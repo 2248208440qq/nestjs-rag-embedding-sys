@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import { EmbeddingClientService } from './embedding-client.service';
+import { EmbeddingClientService } from '@/modules/embeddings/embedding-client.service';
 
 @Module({
   providers: [EmbeddingClientService],

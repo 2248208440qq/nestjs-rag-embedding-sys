@@ -18,7 +18,7 @@ apps/backend/
   docker/             PostgreSQL 初始化 SQL、Embedding 服务镜像文件
   prisma/             Prisma schema、迁移、种子脚本
   src/
-    common/           拦截器、过滤器、守卫、中间件、工具函数
+    common/           拦截器、过滤器、守卫、常量、中间件、工具函数
     config/           环境变量校验与类型化配置
     modules/          业务模块
     prisma/           PrismaModule / PrismaService
@@ -187,6 +187,8 @@ pnpm lint
 - 服务层负责业务流程和持久化编排。
 - 使用构造函数注入依赖。
 - 使用 `CustomLogger` 记录运行日志，避免在运行时代码中直接使用 `console.*`。
+- 后端常量放在 `src/common/constants/<module>.constants.ts`，并通过 `src/common/constants/index.ts` 统一导出。
+- `apps/backend/src` 内部导入统一使用 `@/` 路径别名，避免使用 `../` 和 `../../`。
 - 通过 PrismaModule 使用 Prisma，不在业务模块中创建临时 Prisma Client。
 - 通过 RedisModule 使用 Redis，不在业务模块中创建临时 Redis 客户端。
 - 后端专用 DTO、装饰器和工具优先放入 `@repo/shared-backend`。

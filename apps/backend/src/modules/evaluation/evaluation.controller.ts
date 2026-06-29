@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 
-import { CreateEvaluationCaseDto, RunEvaluationDto } from './dto/evaluation.dto';
-import { EvaluationService } from './evaluation.service';
+import { CreateEvaluationCaseDto, RunEvaluationDto } from '@/modules/evaluation/dto/evaluation.dto';
+import { EvaluationService } from '@/modules/evaluation/evaluation.service';
 
 @Controller('evaluation')
 export class EvaluationController {

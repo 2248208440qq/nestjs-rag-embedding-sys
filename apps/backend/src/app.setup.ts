@@ -2,11 +2,11 @@ import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { CustomLogger } from '@repo/shared-backend';
 import type { NextFunction, Request, Response } from 'express';
 
-import { ResponseExceptionFilter } from './common/filters/response-exception.filter';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
-import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
-import { AppConfigService } from './config/app-config.service';
+import { ResponseExceptionFilter } from '@/common/filters/response-exception.filter';
+import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
+import { RequestContextMiddleware } from '@/common/middleware/request-context.middleware';
+import { RequestLoggerMiddleware } from '@/common/middleware/request-logger.middleware';
+import { AppConfigService } from '@/config/app-config.service';
 
 export function setupApp(app: INestApplication) {
   const logger = app.get(CustomLogger);

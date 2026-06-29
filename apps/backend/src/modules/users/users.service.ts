@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import type { CreateUserDto, UpdateUserDto } from '@repo/shared-backend';
 import type { UserInfo } from '@repo/shared-types';
-import { UsersRepository } from './users.repository';
-import { toUserInfo, toUserRecord } from './users.mapper';
+import { UsersRepository } from '@/modules/users/users.repository';
+import { toUserInfo, toUserRecord } from '@/modules/users/users.mapper';
 
 @Injectable()
 export class UsersService {

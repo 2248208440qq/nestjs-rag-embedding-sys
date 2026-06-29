@@ -2,10 +2,10 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import type { EvaluationMetrics, SearchResult } from '@repo/shared-types';
 import { Prisma } from '@prisma/client';
 
-import { PrismaService } from '../../prisma/prisma.service';
-import { SearchService } from '../search/search.service';
-import { CreateEvaluationCaseDto, RunEvaluationDto } from './dto/evaluation.dto';
-import { toEvaluationCase, toEvaluationRun } from './evaluation.mapper';
+import { PrismaService } from '@/prisma/prisma.service';
+import { SearchService } from '@/modules/search/search.service';
+import { CreateEvaluationCaseDto, RunEvaluationDto } from '@/modules/evaluation/dto/evaluation.dto';
+import { toEvaluationCase, toEvaluationRun } from '@/modules/evaluation/evaluation.mapper';
 
 @Injectable()
 export class EvaluationService {

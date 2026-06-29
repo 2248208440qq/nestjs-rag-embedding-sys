@@ -9,7 +9,7 @@ All public API routes are prefixed with `/api`. Swagger is available at `/docs` 
 ```text
 apps/backend/
 ├─ src/
-│  ├─ common/          # decorators, filters, guards, interceptors, middleware, utilities
+│  ├─ common/          # decorators, filters, guards, constants, interceptors, middleware, utilities
 │  ├─ config/          # env validation and AppConfigService
 │  ├─ prisma/          # PrismaService
 │  ├─ redis/           # RedisService
@@ -190,6 +190,8 @@ See `scripts/vite-test/README.md` and `scripts/vite-test/API_CASES.md`.
 - Keep HTTP-facing serializable contracts aligned with `@repo/shared-types`.
 - Put Nest-only DTOs/decorators/logger/request helpers in `@repo/shared-backend`.
 - Keep request ID, response shape, exception filters and request logging in `src/common`.
+- Put backend constants in `src/common/constants/<module>.constants.ts` and export them from `src/common/constants/index.ts`.
+- Use the `@/` alias for imports under `apps/backend/src`; avoid `../` and `../../` in backend source files.
 - Do not expose Prisma models directly as public API contracts.
 - Do not commit uploads, logs, coverage, `.env`, provider keys, JWT secrets, database passwords, or test snapshots containing sensitive data.
 
@@ -200,4 +202,3 @@ See `scripts/vite-test/README.md` and `scripts/vite-test/API_CASES.md`.
 - Document/index job stuck in `failed`: inspect `/api/index-jobs` `errorMessage`, then check extractor, embedding service, Redis and PostgreSQL/pgvector health.
 - QA returns fallback: retrieval or LLM generation failed/unavailable; inspect trace/job logs and LLM environment variables.
 - Port conflict on `3000`: use `Get-NetTCPConnection -LocalPort 3000 -State Listen` before stopping any process.
-

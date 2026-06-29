@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 
-import { EmbeddingsModule } from '../embeddings/embeddings.module';
-import { PrismaModule } from '../../prisma/prisma.module';
-import { SearchController } from './search.controller';
-import { SearchService } from './search.service';
+import { EmbeddingsModule } from '@/modules/embeddings/embeddings.module';
+import { PrismaModule } from '@/prisma/prisma.module';
+import { SearchController } from '@/modules/search/search.controller';
+import { SearchService } from '@/modules/search/search.service';
 
 @Module({
   imports: [PrismaModule, EmbeddingsModule],

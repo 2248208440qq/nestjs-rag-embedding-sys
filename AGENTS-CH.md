@@ -49,6 +49,8 @@
 - 数据库访问使用 `PrismaService`，Redis 访问使用 `RedisService`。不要在业务模块里临时创建 Prisma 或 Redis 客户端。
 - 运行时日志使用 `@repo/shared-backend` 的 `CustomLogger`。避免在应用代码中直接使用 `console.*`。
 - 请求 ID、统一响应、异常过滤和请求日志放在 `src/common`。
+- 后端常量放在 `src/common/constants/<module>.constants.ts`，并通过 `src/common/constants/index.ts` 统一导出。
+- 后端 `apps/backend/src` 内部导入统一使用 `@/` 路径别名，避免使用 `../` 和 `../../`。
 - 后端全局前缀为 `/api`；Swagger 位于 `/docs`。
 - 对外请求/响应契约应与 `@repo/shared-types` 对齐；不要直接把 Prisma 模型作为公开 API 契约。
 
@@ -120,4 +122,3 @@ pnpm --filter backend prisma:seed
 - 新增依赖只加到实际使用它的 package。
 - 不要为了减少 import 就跨边界搬移代码；保持所有权清晰。
 - 新增命令、运行服务、模块或开发流程时，同步更新 `readme.md`、`AGENTS.md`、`AGENTS-CH.md` 或 package README。
-

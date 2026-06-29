@@ -9,7 +9,7 @@ import { CustomLogger, requestContext } from '@repo/shared-backend';
 import type { ApiErrorResponse, ErrorCode } from '@repo/shared-types';
 import type { Request, Response } from 'express';
 
-import { AppConfigService } from '../../config/app-config.service';
+import { AppConfigService } from '@/config/app-config.service';
 
 @Catch()
 export class ResponseExceptionFilter implements ExceptionFilter {

@@ -2,8 +2,8 @@ import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common'
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { DeptStatus } from '@prisma/client';
 import { CreateDeptDto, UpdateDeptDto } from '@repo/shared-backend';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { DeptsService } from './depts.service';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { DeptsService } from '@/modules/depts/depts.service';
 
 @ApiTags('depts')
 @Controller('system/dept')

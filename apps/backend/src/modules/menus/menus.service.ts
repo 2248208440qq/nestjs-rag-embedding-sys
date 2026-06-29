@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import type { MenuType, MenuStatus } from '@prisma/client';
 import type { UserInfo, MenuItem, MenuRecord } from '@repo/shared-types';
-import { PrismaService } from '../../prisma/prisma.service';
-import { MenusRepository } from './menus.repository';
-import { toMenuTree, toMenuRecordTree, type MenuRow } from './menus.mapper';
+import { PrismaService } from '@/prisma/prisma.service';
+import { MenusRepository } from '@/modules/menus/menus.repository';
+import { toMenuTree, toMenuRecordTree, type MenuRow } from '@/modules/menus/menus.mapper';
 
 @Injectable()
 export class MenusService {

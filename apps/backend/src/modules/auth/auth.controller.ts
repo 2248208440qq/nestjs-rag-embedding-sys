@@ -11,10 +11,10 @@ import {
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { LoginDto } from '@repo/shared-backend';
-import { AppConfigService } from '../../config/app-config.service';
-import { Public } from '../../common/decorators/public.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { AuthService } from './auth.service';
+import { AppConfigService } from '@/config/app-config.service';
+import { Public } from '@/common/decorators/public.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { AuthService } from '@/modules/auth/auth.service';
 import type { UserInfo } from '@repo/shared-types';
 
 @ApiTags('auth')

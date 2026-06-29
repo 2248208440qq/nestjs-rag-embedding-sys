@@ -3,9 +3,9 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { MenuType, MenuStatus } from '@prisma/client';
 import type { UserInfo } from '@repo/shared-types';
 import { CreateMenuDto, UpdateMenuDto } from '@repo/shared-backend';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { MenusService } from './menus.service';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { MenusService } from '@/modules/menus/menus.service';
 
 @ApiTags('menus')
 @Controller()

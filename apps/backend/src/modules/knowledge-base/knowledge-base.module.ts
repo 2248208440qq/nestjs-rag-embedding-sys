@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 
-import { PrismaModule } from '../../prisma/prisma.module';
-import { KnowledgeBaseController } from './knowledge-base.controller';
-import { KnowledgeBaseService } from './knowledge-base.service';
+import { PrismaModule } from '@/prisma/prisma.module';
+import { KnowledgeBaseController } from '@/modules/knowledge-base/knowledge-base.controller';
+import { KnowledgeBaseService } from '@/modules/knowledge-base/knowledge-base.service';
 
 @Module({
   imports: [PrismaModule],

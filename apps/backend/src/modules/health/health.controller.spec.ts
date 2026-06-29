@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { HealthController } from './health.controller';
+import { HealthController } from '@/modules/health/health.controller';
 
 describe('HealthController', () => {
   it('returns service health', () => {

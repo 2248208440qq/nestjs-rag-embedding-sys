@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 
-import { QaRequestDto } from './dto/qa.dto';
-import { QaService } from './qa.service';
+import { QaRequestDto } from '@/modules/qa/dto/qa.dto';
+import { QaService } from '@/modules/qa/qa.service';
 
 @Controller('qa')
 export class QaController {
