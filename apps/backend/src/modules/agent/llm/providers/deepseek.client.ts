@@ -8,6 +8,7 @@ import type {
   LlmInvokeInput,
   LlmInvokeResult,
   LlmModelInfo,
+  LlmStreamChunk,
 } from '@/modules/agent/llm/contracts/llm-client.interface';
 
 @Injectable()
@@ -30,16 +31,7 @@ export class DeepSeekClient implements LlmClient {
       throw new Error('LLM is disabled');
     }
 
-    const model = new ChatOpenAI({
-      apiKey: this.config.llmApiKey,
-      configuration: {
-        baseURL: this.config.llmBaseUrl,
-      },
-      maxTokens: this.config.llmMaxTokens,
-      model: this.config.llmModel,
-      temperature: this.config.llmTemperature,
-      timeout: this.config.llmTimeoutMs,
-    });
+    const model = this.createModel();
 
     const response = await model.invoke([
       new SystemMessage(input.systemPrompt),
@@ -50,6 +42,41 @@ export class DeepSeekClient implements LlmClient {
       content: this.toText(response.content),
       modelInfo: this.modelInfo,
     };
+  }
+
+  async *stream(input: LlmInvokeInput): AsyncIterable<LlmStreamChunk> {
+    if (!this.enabled) {
+      throw new Error('LLM is disabled');
+    }
+
+    const model = this.createModel();
+    const stream = await model.stream([
+      new SystemMessage(input.systemPrompt),
+      new HumanMessage(input.userPrompt),
+    ]);
+
+    for await (const chunk of stream) {
+      const content = this.toText(chunk.content);
+      if (!content) continue;
+
+      yield {
+        content,
+        modelInfo: this.modelInfo,
+      };
+    }
+  }
+
+  private createModel() {
+    return new ChatOpenAI({
+      apiKey: this.config.llmApiKey,
+      configuration: {
+        baseURL: this.config.llmBaseUrl,
+      },
+      maxTokens: this.config.llmMaxTokens,
+      model: this.config.llmModel,
+      temperature: this.config.llmTemperature,
+      timeout: this.config.llmTimeoutMs,
+    });
   }
 
   private toText(content: unknown) {

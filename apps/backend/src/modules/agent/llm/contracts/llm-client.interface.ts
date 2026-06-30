@@ -13,8 +13,14 @@ export interface LlmInvokeResult {
   modelInfo: LlmModelInfo;
 }
 
+export interface LlmStreamChunk {
+  content: string;
+  modelInfo: LlmModelInfo;
+}
+
 export interface LlmClient {
   enabled: boolean;
   modelInfo: LlmModelInfo;
   invoke(input: LlmInvokeInput): Promise<LlmInvokeResult>;
+  stream(input: LlmInvokeInput): AsyncIterable<LlmStreamChunk>;
 }

@@ -3,6 +3,7 @@ import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import type {
   AgentChatResponse,
   AgentMessage,
+  AgentMessageSource,
   AgentType,
   QaCitation,
   SearchResult,
@@ -36,9 +37,28 @@ interface LegalQaGraphOutput extends AgentChatResponse {
   citationValidation?: CitationValidation;
 }
 
+export type LegalQaGraphStreamEvent =
+  | {
+      data: { message: string };
+      event: 'status';
+    }
+  | {
+      data: { citations: QaCitation[]; sourceChunks: SearchResult[] };
+      event: 'source';
+    }
+  | {
+      data: { content: string };
+      event: 'delta';
+    }
+  | {
+      data: AgentChatResponse;
+      event: 'done';
+    };
+
 const LegalQaState = Annotation.Root({
   agentType: Annotation<AgentType>(),
   answer: Annotation<string>(),
+  assistantMessage: Annotation<AgentMessage | undefined>(),
   assistantMessageId: Annotation<string | undefined>(),
   citationValidation: Annotation<CitationValidation | undefined>(),
   citations: Annotation<QaCitation[]>(),
@@ -117,16 +137,69 @@ export class LegalQaGraph {
       userId: input.userId,
     });
 
-    return {
-      answer: state.answer,
-      citations: state.citations,
-      citationValidation: state.citationValidation,
-      fallbackUsed: state.fallbackUsed,
-      messageId: state.assistantMessageId!,
-      modelInfo: state.modelInfo,
-      sessionId: state.sessionId,
-      sourceChunks: state.searchResults,
-      traceId: state.traceId,
+    return this.toResponse(state);
+  }
+
+  async *stream(
+    input: LegalQaGraphInput,
+  ): AsyncIterable<LegalQaGraphStreamEvent> {
+    const state = {
+      agentType: input.agentType,
+      citations: [],
+      fallbackUsed: false,
+      knowledgeBaseIds: input.knowledgeBaseIds,
+      messages: [],
+      question: input.question,
+      searchResults: [],
+      sessionId: input.sessionId,
+      toolCalls: [],
+      topK: input.topK,
+      userId: input.userId,
+    } as unknown as typeof LegalQaState.State;
+
+    yield { data: { message: '规范化问题' }, event: 'status' };
+    Object.assign(state, this.normalize(state));
+
+    yield { data: { message: '保存用户消息' }, event: 'status' };
+    Object.assign(state, await this.saveUserMessage(state));
+
+    yield { data: { message: '读取短期记忆' }, event: 'status' };
+    Object.assign(state, await this.loadMemory(state));
+
+    yield { data: { message: '检索法律知识库' }, event: 'status' };
+    Object.assign(state, await this.legalSearch(state));
+    yield {
+      data: {
+        citations: state.citations,
+        sourceChunks: state.searchResults,
+      },
+      event: 'source',
+    };
+
+    yield { data: { message: '组织可引用资料' }, event: 'status' };
+    Object.assign(state, this.buildContext(state));
+    Object.assign(state, this.renderPrompt(state));
+
+    yield { data: { message: 'DeepSeek 生成中' }, event: 'status' };
+    for await (const event of this.generateStreaming(state)) {
+      if (event.event === 'delta') {
+        yield event;
+        continue;
+      }
+
+      Object.assign(state, event.data);
+    }
+
+    yield { data: { message: '校验引用编号' }, event: 'status' };
+    Object.assign(state, await this.validate(state));
+
+    yield { data: { message: '保存回答' }, event: 'status' };
+    Object.assign(state, await this.saveAssistantMessage(state));
+    Object.assign(state, await this.persistTrace(state));
+
+    yield {
+      data: this.toResponse(state),
+      event: 'done',
     };
   }
 
@@ -262,6 +335,68 @@ export class LegalQaGraph {
     };
   }
 
+  private async *generateStreaming(state: typeof LegalQaState.State) {
+    if (state.searchResults.length === 0) {
+      const answer = state.retrievalError
+        ? `当前检索服务暂不可用，无法获取与“${state.question}”相关的法规依据。`
+        : `未检索到与“${state.question}”直接相关的法规依据。`;
+
+      yield {
+        data: {
+          answer,
+          fallbackUsed: true,
+        },
+        event: 'state' as const,
+      };
+      yield { data: { content: answer }, event: 'delta' as const };
+      return;
+    }
+
+    const llm = this.llmRegistry.getDefault();
+
+    try {
+      let answer = '';
+      let modelInfo = llm.modelInfo;
+
+      for await (const chunk of llm.stream({
+        systemPrompt: state.promptSnapshot?.systemPrompt ?? '',
+        userPrompt: state.promptSnapshot?.userPrompt ?? '',
+      })) {
+        answer += chunk.content;
+        modelInfo = chunk.modelInfo;
+        yield { data: { content: chunk.content }, event: 'delta' as const };
+      }
+
+      if (answer.trim()) {
+        yield {
+          data: {
+            answer,
+            fallbackUsed: false,
+            modelInfo,
+          },
+          event: 'state' as const,
+        };
+        return;
+      }
+    } catch {
+      // Provider details and API keys must never leak to public responses.
+    }
+
+    const answer = this.composeFallbackAnswer(
+      state.question,
+      state.searchResults,
+    );
+    yield {
+      data: {
+        answer,
+        fallbackUsed: true,
+        modelInfo: llm.enabled ? llm.modelInfo : undefined,
+      },
+      event: 'state' as const,
+    };
+    yield { data: { content: answer }, event: 'delta' as const };
+  }
+
   private async validate(state: typeof LegalQaState.State) {
     const toolCalls = [...state.toolCalls];
     const traceToolCall = (toolCall: Record<string, unknown>) => {
@@ -295,12 +430,16 @@ export class LegalQaGraph {
       },
       role: 'assistant',
       sessionId: state.sessionId,
+      sources: state.searchResults,
       toolCalls: state.toolCalls,
     });
 
     await this.sessionsService.touch(state.sessionId);
 
-    return { assistantMessageId: message.id };
+    return {
+      assistantMessage: message,
+      assistantMessageId: message.id,
+    };
   }
 
   private async persistTrace(state: typeof LegalQaState.State) {
@@ -326,7 +465,11 @@ export class LegalQaGraph {
       toolCalls: state.toolCalls,
     });
 
-    return { traceId };
+    const assistantMessage = state.assistantMessageId
+      ? await this.messagesService.findById(state.assistantMessageId)
+      : state.assistantMessage;
+
+    return { assistantMessage, traceId };
   }
 
   private toCitations(results: SearchResult[]): QaCitation[] {
@@ -362,4 +505,39 @@ export class LegalQaGraph {
       '该答案为检索式草稿，正式结论应结合完整法规上下文和引用来源复核。',
     ].join('\n');
   }
+
+  private toResponse(state: typeof LegalQaState.State): LegalQaGraphOutput {
+    const message = state.assistantMessage;
+    const sourceChunks = message
+      ? message.sources.map(toSearchResult)
+      : state.searchResults;
+
+    return {
+      answer: message?.content ?? state.answer,
+      citations: message?.citations ?? state.citations,
+      citationValidation:
+        message?.citationValidation ?? state.citationValidation,
+      fallbackUsed: message?.fallbackUsed ?? state.fallbackUsed,
+      message: message!,
+      messageId: message?.id ?? state.assistantMessageId!,
+      modelInfo: message?.modelInfo ?? state.modelInfo,
+      sessionId: state.sessionId,
+      sourceChunks,
+      traceId: message?.traceId ?? state.traceId,
+    };
+  }
+}
+
+function toSearchResult(source: AgentMessageSource): SearchResult {
+  return {
+    articleNo: source.articleNo,
+    chunkId: source.chunkId,
+    content: source.content,
+    documentId: source.documentId,
+    matchType: source.matchType,
+    metadata: source.metadata,
+    score: source.score,
+    sectionPath: source.sectionPath,
+    title: source.title,
+  };
 }

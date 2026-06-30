@@ -26,9 +26,10 @@
     "#/*": "./src/*"
   },
   "dependencies": {
-    "@repo/shared-types": "link:../../../../packages/shared-types",
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@open-file-viewer/core": "0.1.13",
     "@open-file-viewer/vue": "0.1.13",
+    "@repo/shared-types": "link:../../../../packages/shared-types",
     "@vben/access": "workspace:*",
     "@vben/common-ui": "workspace:*",
     "@vben/constants": "workspace:*",
@@ -46,6 +47,7 @@
     "@vueuse/core": "catalog:",
     "dayjs": "catalog:",
     "element-plus": "catalog:",
+    "marked": "^18.0.5",
     "pdfjs-dist": "^6.0.227",
     "pinia": "catalog:",
     "vue": "catalog:",

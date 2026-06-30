@@ -27,16 +27,42 @@ export interface AgentSession {
   userId?: string;
 }
 
-export interface AgentMessage {
-  citations: QaCitation[];
+export interface AgentMessageSource {
+  articleNo?: string;
+  chunkId: string;
   content: string;
   createdAt: string;
+  documentId: string;
+  id: string;
+  index: number;
+  matchType?: SearchResult['matchType'];
+  metadata: Record<string, unknown>;
+  score: number;
+  sectionPath?: string;
+  title: string;
+}
+
+export interface AgentMessage {
+  citations: QaCitation[];
+  citationValidation?: {
+    passed: boolean;
+    warnings: string[];
+  };
+  content: string;
+  createdAt: string;
+  fallbackUsed?: boolean;
   id: string;
   metadata: Record<string, unknown>;
+  modelInfo?: {
+    model: string;
+    provider: string;
+  };
   role: AgentMessageRole;
   sessionId: string;
+  sources: AgentMessageSource[];
   status: AgentMessageStatus;
   toolCalls: Record<string, unknown>[];
+  traceId?: string;
 }
 
 export interface AgentChatRequest {
@@ -56,6 +82,7 @@ export interface AgentChatResponse {
     warnings: string[];
   };
   fallbackUsed?: boolean;
+  message: AgentMessage;
   messageId: string;
   modelInfo?: {
     model: string;

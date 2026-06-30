@@ -4,6 +4,7 @@ export type {
   AgentMemoryType,
   AgentMessage,
   AgentMessageRole,
+  AgentMessageSource,
   AgentMessageStatus,
   AgentSession,
   AgentSessionStatus,

@@ -188,21 +188,46 @@ model AgentSession {
 }
 
 model AgentMessage {
-  id        String             @id @default(uuid()) @db.Uuid
-  sessionId String             @map("session_id") @db.Uuid
-  session   AgentSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id        String               @id @default(uuid()) @db.Uuid
+  sessionId String               @map("session_id") @db.Uuid
+  session   AgentSession         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   role      AgentMessageRole
   content   String
-  status    AgentMessageStatus @default(completed)
-  citations Json               @default("[]")
-  toolCalls Json               @default("[]") @map("tool_calls")
-  metadata  Json               @default("{}")
-  createdAt DateTime           @default(now()) @map("created_at")
+  status    AgentMessageStatus   @default(completed)
+  citations Json                 @default("[]")
+  toolCalls Json                 @default("[]") @map("tool_calls")
+  metadata  Json                 @default("{}")
+  sources   AgentMessageSource[]
+  traces    AgentTrace[]
+  createdAt DateTime             @default(now()) @map("created_at")
 
   @@index([sessionId])
   @@index([role])
   @@index([status])
   @@map("agent_messages")
+}
+
+model AgentMessageSource {
+  id          String       @id @default(uuid()) @db.Uuid
+  messageId   String       @map("message_id") @db.Uuid
+  message     AgentMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  index       Int
+  chunkId     String       @map("chunk_id") @db.Uuid
+  documentId  String       @map("document_id") @db.Uuid
+  title       String
+  content     String
+  score       Float
+  matchType   String?      @map("match_type")
+  articleNo   String?      @map("article_no")
+  sectionPath String?      @map("section_path")
+  metadata    Json         @default("{}")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  @@unique([messageId, index])
+  @@index([messageId])
+  @@index([chunkId])
+  @@index([documentId])
+  @@map("agent_message_sources")
 }
 
 model AgentMemory {
@@ -224,18 +249,19 @@ model AgentMemory {
 }
 
 model AgentTrace {
-  id             String   @id @default(uuid()) @db.Uuid
-  sessionId      String?  @map("session_id") @db.Uuid
-  messageId      String?  @map("message_id") @db.Uuid
-  agentType      String   @map("agent_type")
-  input          Json     @default("{}")
-  output         Json     @default("{}")
-  toolCalls      Json     @default("[]") @map("tool_calls")
-  promptSnapshot Json     @default("{}") @map("prompt_snapshot")
-  modelInfo      Json     @default("{}") @map("model_info")
+  id             String        @id @default(uuid()) @db.Uuid
+  sessionId      String?       @map("session_id") @db.Uuid
+  messageId      String?       @map("message_id") @db.Uuid
+  message        AgentMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  agentType      String        @map("agent_type")
+  input          Json          @default("{}")
+  output         Json          @default("{}")
+  toolCalls      Json          @default("[]") @map("tool_calls")
+  promptSnapshot Json          @default("{}") @map("prompt_snapshot")
+  modelInfo      Json          @default("{}") @map("model_info")
   error          String?
-  latencyMs      Int?     @map("latency_ms")
-  createdAt      DateTime @default(now()) @map("created_at")
+  latencyMs      Int?          @map("latency_ms")
+  createdAt      DateTime      @default(now()) @map("created_at")
 
   @@index([sessionId])
   @@index([messageId])

@@ -30,6 +30,7 @@
 - 使用 Vue 3 Composition API 和 `<script setup lang="ts">`。
 - 优先遵循 Vben Admin 现有模式：`@vben/common-ui`、Vben adapters、路由、菜单权限和布局规范。
 - 只有在 Vben 没有合适封装，或 RAG 低层组件需要时，才直接使用 Element Plus。
+- 交互界面非必要优先使用 Vben 提供的组件而不是 Element Plus，并以 Tailwind CSS utility classes 作为主要样式层。
 - RAG 页面位于 `apps/frontend/apps/admin/src/views/rag/*`。
 - RAG API 客户端位于 `apps/frontend/apps/admin/src/api/rag/*`。
 - API 契约、枚举和共享接口使用 `@repo/shared-types`。
