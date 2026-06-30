@@ -30,6 +30,7 @@ This file describes how coding agents should work in this repository. Keep it al
 - Use Vue 3 Composition API with `<script setup lang="ts">`.
 - Use Vben Admin patterns first: `@vben/common-ui`, Vben adapters, project routes, access/menu system and existing layout conventions.
 - Use Element Plus directly only when Vben does not provide the right primitive or for low-level RAG-specific UI.
+- For agent interaction screens, prefer Vben-provided components before Element Plus, and use Tailwind CSS utility classes as the primary styling layer.
 - RAG pages currently live under `apps/frontend/apps/admin/src/views/rag/*`.
 - RAG API clients live under `apps/frontend/apps/admin/src/api/rag/*`.
 - Use `@repo/shared-types` for API contracts and shared enums/interfaces.

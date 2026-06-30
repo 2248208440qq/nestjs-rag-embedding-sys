@@ -36,6 +36,38 @@ async function main() {
   };
 
   // 1. Create menus
+  const legalAssistantMenu = await prisma.menu.upsert({
+    where: { name: 'LegalAssistant' },
+    update: {
+      path: '/agent',
+      component: '/agent/legal-assistant/index',
+      icon: 'lucide:sparkles',
+      type: 'menu',
+      status: 'active',
+      orderNo: 8,
+      parentId: null,
+      meta: {
+        icon: 'lucide:sparkles',
+        title: '\u6cd5\u5f8b\u52a9\u624b',
+        order: 8,
+      },
+    },
+    create: {
+      name: 'LegalAssistant',
+      path: '/agent',
+      component: '/agent/legal-assistant/index',
+      icon: 'lucide:sparkles',
+      type: 'menu',
+      status: 'active',
+      orderNo: 8,
+      meta: {
+        icon: 'lucide:sparkles',
+        title: '\u6cd5\u5f8b\u52a9\u624b',
+        order: 8,
+      },
+    },
+  });
+
   const ragCatalog = await prisma.menu.upsert({
     where: { name: 'RagKnowledge' },
     update: {},
@@ -336,6 +368,13 @@ async function main() {
     title: '\u6cd5\u5f8b\u95ee\u7b54',
   });
 
+  const legalAssistantAskButton = await upsertButtonPermission({
+    name: 'agent:chat:ask',
+    path: '/agent/chat',
+    parentId: legalAssistantMenu.id,
+    title: '\u6cd5\u5f8b\u52a9\u624b',
+  });
+
   const systemCatalog = await prisma.menu.upsert({
     where: { name: 'SystemManagement' },
     update: {
@@ -624,6 +663,7 @@ async function main() {
 
   // 3. Assign menus to roles
   const allMenus = [
+    legalAssistantMenu,
     ragCatalog,
     ragSearchMenu,
     ragDocumentsMenu,
@@ -646,6 +686,7 @@ async function main() {
     knowledgeBaseUpdateButton,
     knowledgeBaseDeleteButton,
     qaAskButton,
+    legalAssistantAskButton,
     systemCatalog,
     userMgmtMenu,
     roleMgmtMenu,
@@ -678,6 +719,7 @@ async function main() {
 
   // Admin role gets RAG menus + some system buttons
   const adminMenus = [
+    legalAssistantMenu,
     ragCatalog,
     ragSearchMenu,
     ragDocumentsMenu,
@@ -700,6 +742,7 @@ async function main() {
     knowledgeBaseUpdateButton,
     knowledgeBaseDeleteButton,
     qaAskButton,
+    legalAssistantAskButton,
     systemCatalog,
     userMgmtMenu,
     roleMgmtMenu,
@@ -730,6 +773,7 @@ async function main() {
 
   // User role gets basic RAG menus
   const userMenus = [
+    legalAssistantMenu,
     ragCatalog,
     ragSearchMenu,
     ragDocumentsMenu,
@@ -739,6 +783,7 @@ async function main() {
     searchButton,
     evaluationRunButton,
     qaAskButton,
+    legalAssistantAskButton,
   ];
   for (const menu of userMenus) {
     await prisma.roleMenu.upsert({
@@ -811,7 +856,9 @@ async function main() {
   });
 
   console.log('Seed completed successfully!');
-  console.log('Users: vben/123456 (super), admin/123456789 (admin), jack/123456 (user)');
+  console.log(
+    'Users: vben/123456 (super), admin/123456789 (admin), jack/123456 (user)',
+  );
 }
 
 main()

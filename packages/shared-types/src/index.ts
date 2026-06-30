@@ -1,3 +1,4 @@
+export * from './agent';
 export * from './common';
 export * from './dept';
 export * from './document';

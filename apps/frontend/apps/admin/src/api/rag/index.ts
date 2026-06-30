@@ -1,3 +1,4 @@
+export * from './agent';
 export * from './evaluation';
 export * from './index-jobs';
 export * from './knowledge-base';

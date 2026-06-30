@@ -5,6 +5,7 @@ import { LoggerModule } from '@repo/shared-backend';
 import { AppConfigModule } from '@/config/config.module';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
+import { AgentModule } from '@/modules/agent/agent.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { DeptsModule } from '@/modules/depts/depts.module';
 import { DocumentsModule } from '@/modules/documents/documents.module';
@@ -33,6 +34,7 @@ import { RedisModule } from '@/redis/redis.module';
     MenusModule,
     DeptsModule,
     HealthModule,
+    AgentModule,
     FilesModule,
     DocumentsModule,
     IndexJobsModule,

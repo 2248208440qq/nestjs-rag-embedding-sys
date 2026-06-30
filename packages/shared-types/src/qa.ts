@@ -23,8 +23,8 @@ export interface QaResponse {
   };
   fallbackUsed?: boolean;
   modelInfo?: {
-    model: 'deepseek-v4-flash';
-    provider: 'deepseek';
+    model: string;
+    provider: string;
   };
   retrievalTraceId?: string;
   sourceChunks: SearchResult[];
